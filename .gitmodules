@@ -1,0 +1,3 @@
+[submodule "deps/cxxcam"]
+	path = deps/cxxcam
+	url = git@github.com:mythagel/cxxcam.git
