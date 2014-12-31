@@ -120,7 +120,7 @@ void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& step
     geom->setColorArray(colors, osg::Array::BIND_OVERALL);
 
     auto normals = new osg::Vec3Array;
-    normals->push_back({0.0f,-1.0f,0.0f});
+    normals->push_back({0.0f,0.0f,1.0f});
     geom->setNormalArray(normals, osg::Array::BIND_OVERALL);
 
     geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINE_STRIP,0,vertices->size()));
