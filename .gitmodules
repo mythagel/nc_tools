@@ -1,3 +1,6 @@
 [submodule "deps/rs274ngc"]
 	path = deps/rs274ngc
 	url = git@github.com:mythagel/rs274ngc.git
+[submodule "deps/cxxcam"]
+	path = deps/cxxcam
+	url = git@github.com:mythagel/cxxcam.git

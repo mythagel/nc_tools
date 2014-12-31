@@ -6,13 +6,22 @@ ENDIF()
 FIND_PACKAGE(SFML 2 COMPONENTS system window graphics audio REQUIRED)
 FIND_PACKAGE(OpenGL REQUIRED)
 FIND_PACKAGE(OpenSceneGraph 3.2.0 REQUIRED osgViewer osgGA)
+FIND_PACKAGE(Threads REQUIRED)
 
 include_directories(
     ${SFML_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
     ${OPENSCENEGRAPH_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
+    ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
 )
 
-add_executable(backplot backplot.cpp)
-target_link_libraries(backplot ${SFML_LIBRARIES} ${OPENGL_LIBRARIES} ${OPENSCENEGRAPH_LIBRARIES} rs274ngc)
+add_executable(backplot backplot.cpp rs274_backplot.cpp)
+target_link_libraries(backplot
+    ${SFML_LIBRARIES}
+    ${OPENGL_LIBRARIES}
+    ${OPENSCENEGRAPH_LIBRARIES}
+    rs274ngc
+    cxxcam
+    ${CMAKE_THREAD_LIBS_INIT}
+)

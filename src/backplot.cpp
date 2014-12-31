@@ -4,12 +4,15 @@
 #include <osgGA/TrackballManipulator>
 #include <osgGA/StateSetManipulator>
 
+#include "rs274_backplot.h"
+#include "rs274ngc_return.hh"
+
 #include <iostream>
+#include <thread>
+#include <atomic>
+#include <mutex>
 
-osg::Node* createBackplot()
-{
-    auto geode = new osg::Geode();
-
+void createBackplot(osg::Geode* geode) {
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
@@ -36,7 +39,6 @@ osg::Node* createBackplot()
     geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINE_STRIP,0,vertices->size()));
 
     geode->addDrawable(geom);
-    return geode;
 }
 
 int main() {
@@ -57,9 +59,13 @@ int main() {
     osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
     viewer.addEventHandler(statesetManipulator.get());
 
-    viewer.setSceneData(createBackplot());
+    auto geode = new osg::Geode();
+    createBackplot(geode);
+    viewer.setSceneData(geode);
 
     viewer.realize();
+
+    rs274_backplot backplotter{geode};
 
     auto adapt = [gw](const sf::Event& event) {
         auto eq = gw->getEventQueue();
@@ -92,8 +98,32 @@ int main() {
                 break;
         }
     };
- 
-    for(bool running = true; running; ) {
+
+    std::atomic<bool> running{true};
+    std::mutex draw_mt;
+
+    std::thread backplot_thread([&] {
+
+        std::string line;
+        while(running && std::getline(std::cin, line)) {
+            int status;
+            
+            status = backplotter.read(line.c_str());
+            if(status != RS274NGC_OK) {
+                if(status != RS274NGC_EXECUTE_FINISH) {
+                    std::cerr << "Error reading line!: \n";
+                    std::cerr << line <<"\n";
+                    return status;
+                }
+            }
+            
+            status = backplotter.execute();
+            if(status != RS274NGC_OK)
+                return status;
+        }
+    });
+
+    while(running) {
         sf::Event event;
         while (window.pollEvent(event)) {
             adapt(event);
@@ -114,9 +144,14 @@ int main() {
             }
         }
 
-        viewer.frame();
-        window.display();
+        {
+            std::lock_guard<std::mutex> lock(draw_mt);
+            viewer.frame();
+            window.display();
+        }
     }
+
+    backplot_thread.join();
 
     return 0;
 }
