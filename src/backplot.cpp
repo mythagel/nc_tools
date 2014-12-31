@@ -12,33 +12,180 @@
 #include <atomic>
 #include <mutex>
 
-void createBackplot(osg::Geode* geode) {
-    auto geom = new osg::Geometry();
-
-    auto vertices = new osg::Vec3Array;
-    vertices->reserve(8);
-    vertices->push_back({-1.13704, -2.15188e-09, 0.40373});
-    vertices->push_back({-0.856897, -2.15188e-09, 0.531441});
-    vertices->push_back({-0.889855, -2.15188e-09, 0.444927});
-    vertices->push_back({-0.568518, -2.15188e-09, 0.40373});
-    vertices->push_back({-1.00933, -2.15188e-09, 0.370773});
-    vertices->push_back({-0.716827, -2.15188e-09, 0.292498});
-    vertices->push_back({-1.07936, 9.18133e-09, 0.317217});
-    vertices->push_back({-0.700348, 9.18133e-09, 0.362533});
-    geom->setVertexArray(vertices);
-
-    auto colors = new osg::Vec4Array;
-    colors->push_back({1.0f,0.0f,0.0f,1.0f});
-    geom->setColorArray(colors, osg::Array::BIND_OVERALL);
-
-    auto normals = new osg::Vec3Array;
-    normals->push_back({0.0f,-1.0f,0.0f});
-    geom->setNormalArray(normals, osg::Array::BIND_OVERALL);
-
-    //geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINES,0,vertices->size()));
-    geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::LINE_STRIP,0,vertices->size()));
-
-    geode->addDrawable(geom);
+int convert(sf::Keyboard::Key k) {
+    using namespace osgGA;
+    switch(k) {
+        case sf::Keyboard::Unknown:
+	        break;
+        case sf::Keyboard::A:
+        case sf::Keyboard::B:
+        case sf::Keyboard::C:
+        case sf::Keyboard::D:
+        case sf::Keyboard::E:
+        case sf::Keyboard::F:
+        case sf::Keyboard::G:
+        case sf::Keyboard::H:
+        case sf::Keyboard::I:
+        case sf::Keyboard::J:
+        case sf::Keyboard::K:
+        case sf::Keyboard::L:
+        case sf::Keyboard::M:
+        case sf::Keyboard::N:
+        case sf::Keyboard::O:
+        case sf::Keyboard::P:
+        case sf::Keyboard::Q:
+        case sf::Keyboard::R:
+        case sf::Keyboard::S:
+        case sf::Keyboard::T:
+        case sf::Keyboard::U:
+        case sf::Keyboard::V:
+        case sf::Keyboard::W:
+        case sf::Keyboard::X:
+        case sf::Keyboard::Y:
+        case sf::Keyboard::Z:
+            return GUIEventAdapter::KEY_A + (k - sf::Keyboard::A);
+        case sf::Keyboard::Num0:
+        case sf::Keyboard::Num1:
+        case sf::Keyboard::Num2:
+        case sf::Keyboard::Num3:
+        case sf::Keyboard::Num4:
+        case sf::Keyboard::Num5:
+        case sf::Keyboard::Num6:
+        case sf::Keyboard::Num7:
+        case sf::Keyboard::Num8:
+        case sf::Keyboard::Num9:
+            return GUIEventAdapter::KEY_0 + (k - sf::Keyboard::Num0);
+        case sf::Keyboard::Escape:
+            return GUIEventAdapter::KEY_Escape;
+        case sf::Keyboard::LControl:
+            return GUIEventAdapter::KEY_Control_L;
+        case sf::Keyboard::LShift:
+            return GUIEventAdapter::KEY_Shift_L;
+        case sf::Keyboard::LAlt:
+            return GUIEventAdapter::KEY_Alt_L;
+        case sf::Keyboard::LSystem:
+            return GUIEventAdapter::KEY_Meta_L;
+        case sf::Keyboard::RControl:
+            return GUIEventAdapter::KEY_Control_R;
+        case sf::Keyboard::RShift:
+            return GUIEventAdapter::KEY_Shift_R;
+        case sf::Keyboard::RAlt:
+            return GUIEventAdapter::KEY_Alt_L;
+        case sf::Keyboard::RSystem:
+            return GUIEventAdapter::KEY_Meta_R;
+        case sf::Keyboard::Menu:
+	        break;
+        case sf::Keyboard::LBracket:
+	        break;
+        case sf::Keyboard::RBracket:
+	        break;
+        case sf::Keyboard::SemiColon:
+	        break;
+        case sf::Keyboard::Comma:
+	        break;
+        case sf::Keyboard::Period:
+	        break;
+        case sf::Keyboard::Quote:
+	        break;
+        case sf::Keyboard::Slash:
+	        break;
+        case sf::Keyboard::BackSlash:
+	        break;
+        case sf::Keyboard::Tilde:
+	        break;
+        case sf::Keyboard::Equal:
+	        break;
+        case sf::Keyboard::Dash:
+	        break;
+        case sf::Keyboard::Space:
+	        break;
+        case sf::Keyboard::Return:
+	        break;
+        case sf::Keyboard::BackSpace:
+	        break;
+        case sf::Keyboard::Tab:
+	        break;
+        case sf::Keyboard::PageUp:
+	        break;
+        case sf::Keyboard::PageDown:
+	        break;
+        case sf::Keyboard::End:
+	        break;
+        case sf::Keyboard::Home:
+	        break;
+        case sf::Keyboard::Insert:
+	        break;
+        case sf::Keyboard::Delete:
+	        break;
+        case sf::Keyboard::Add:
+	        break;
+        case sf::Keyboard::Subtract:
+	        break;
+        case sf::Keyboard::Multiply:
+	        break;
+        case sf::Keyboard::Divide:
+	        break;
+        case sf::Keyboard::Left:
+	        break;
+        case sf::Keyboard::Right:
+	        break;
+        case sf::Keyboard::Up:
+	        break;
+        case sf::Keyboard::Down:
+	        break;
+        case sf::Keyboard::Numpad0:
+	        break;
+        case sf::Keyboard::Numpad1:
+	        break;
+        case sf::Keyboard::Numpad2:
+	        break;
+        case sf::Keyboard::Numpad3:
+	        break;
+        case sf::Keyboard::Numpad4:
+	        break;
+        case sf::Keyboard::Numpad5:
+	        break;
+        case sf::Keyboard::Numpad6:
+	        break;
+        case sf::Keyboard::Numpad7:
+	        break;
+        case sf::Keyboard::Numpad8:
+	        break;
+        case sf::Keyboard::Numpad9:
+	        break;
+        case sf::Keyboard::F1:
+	        break;
+        case sf::Keyboard::F2:
+	        break;
+        case sf::Keyboard::F3:
+	        break;
+        case sf::Keyboard::F4:
+	        break;
+        case sf::Keyboard::F5:
+	        break;
+        case sf::Keyboard::F6:
+	        break;
+        case sf::Keyboard::F7:
+	        break;
+        case sf::Keyboard::F8:
+	        break;
+        case sf::Keyboard::F9:
+	        break;
+        case sf::Keyboard::F10:
+	        break;
+        case sf::Keyboard::F11:
+	        break;
+        case sf::Keyboard::F12:
+	        break;
+        case sf::Keyboard::F13:
+	        break;
+        case sf::Keyboard::F14:
+	        break;
+        case sf::Keyboard::F15:
+	        break;
+        case sf::Keyboard::Pause:
+	        break;
+    }
 }
 
 int main() {
@@ -60,7 +207,6 @@ int main() {
     viewer.addEventHandler(statesetManipulator.get());
 
     auto geode = new osg::Geode();
-    createBackplot(geode);
     viewer.setSceneData(geode);
 
     viewer.realize();
@@ -96,6 +242,14 @@ int main() {
                 if (event.mouseButton.button == sf::Mouse::Middle)
                     eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 2);
                 break;
+            case sf::Event::KeyPressed: {
+                eq->keyPress(convert(event.key.code), event.key.code);
+                break;
+            }
+            case sf::Event::KeyReleased: {
+                eq->keyPress(convert(event.key.code), event.key.code);
+                break;
+            }
         }
     };
 
@@ -134,13 +288,6 @@ int main() {
                 case sf::Event::Resized:
                     gw->resized(0, 0, event.size.width, event.size.height);
                     break;
-                case sf::Event::KeyPressed: {
-                    std::cout << "key: " << event.key.code << "\n";
-                    std::cout << "control:" << event.key.control << "\n";
-                    std::cout << "alt:" << event.key.alt << "\n";
-                    //if (event.key.code == sf::Keyboard::Escape)
-                    break;
-                }
             }
         }
 

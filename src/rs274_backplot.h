@@ -26,6 +26,7 @@
 #define RS274_BACKPLOT_H_
 #include "rs274ngc.hh"
 #include <osg/Geode>
+#include "Position.h"
 
 class rs274_backplot : public rs274ngc
 {
@@ -33,11 +34,6 @@ private:
 	virtual void interp_init();
 
     osg::Geode* geode;
-
-	// Logging
-	int               _line_number = 1;
-
-	// State
 
 	Plane       _active_plane = Plane::XY;
 	int               _active_slot = 1;
@@ -55,17 +51,11 @@ private:
 	Direction   _spindle_turning;
 	double            _traverse_rate;
 
-	// Data
-
-	/* Provided by interpreter, rs274ngc will
-	 * call tool(n) with n up to tool_max. */
 	int                      _tool_max = 68;
 	Tool         _tools[CANON_TOOL_MAX];
-
-	char                     _parameter_file_name[100];
 private:
 
-	void print_nc_line_number();
+    cxxcam::Position convert(const Position& p) const;
 
 	virtual void offset_origin(const Position& pos);
 	virtual void units(Units u);
