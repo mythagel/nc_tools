@@ -100,7 +100,7 @@ void rs274_backplot::rapid_rate(double rate)
     _traverse_rate = rate;
 }
 
-void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool linear) {
+void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool cut) {
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
@@ -113,7 +113,7 @@ void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& step
     geom->setVertexArray(vertices);
 
     auto colors = new osg::Vec4Array;
-    if(linear)
+    if(cut)
         colors->push_back({0.0f,1.0f,0.0f,1.0f});
     else
         colors->push_back({1.0f,0.0f,0.0f,1.0f});
@@ -183,6 +183,43 @@ void rs274_backplot::speed_feed_sync_stop()
 
 void rs274_backplot::arc(double end0, double end1, double axis0, double axis1, int rotation, double end_point, double a, double b, double c)
 {
+    Position end;
+    Position center;
+    cxxcam::math::vector_3 plane;
+
+    switch(_active_plane) {
+        case Plane::XY:
+            end.x = end0;
+            end.y = end1;
+            end.z = end_point;
+            center.x = axis0;
+            center.y = axis1;
+            plane.z = 1;
+            break;
+        case Plane::YZ:
+            end.x = end_point;
+            end.y = end0;
+            end.z = end1;
+            center.y = axis0;
+            center.z = axis1;
+            plane.x = 1;
+            break;
+        case Plane::XZ:
+            end.x = end1;
+            end.y = end_point;
+            end.z = end0;
+            center.x = axis1;
+            center.z = axis0;
+            plane.y = 1;
+            break;
+    }
+    end.a = a;
+    end.b = b;
+    end.c = c;
+
+	auto steps = cxxcam::path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? cxxcam::path::ArcDirection::Clockwise : cxxcam::path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+    pushBackplot(geode, steps, true);
+
     if (_active_plane == Plane::XY)
     {
         program_pos.x = end0;
