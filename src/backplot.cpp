@@ -288,6 +288,10 @@ int main() {
                 case sf::Event::Resized:
                     gw->resized(0, 0, event.size.width, event.size.height);
                     break;
+                case sf::Event::KeyPressed:
+                    if(event.key.code == sf::Keyboard::Escape)
+                        running = false;
+                    break;
             }
         }
 
