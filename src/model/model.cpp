@@ -4,7 +4,7 @@
 #include <osgGA/TrackballManipulator>
 #include <osgGA/StateSetManipulator>
 
-#include "rs274_backplot.h"
+#include "rs274_model.h"
 #include "rs274ngc_return.hh"
 
 #include <iostream>
@@ -193,7 +193,7 @@ int main() {
     mode.width = 800;
     mode.height = 600;
 
-    sf::Window window(mode, "Backplot");
+    sf::Window window(mode, "Model");
     window.setVerticalSyncEnabled(true);
 
 //    osg::setNotifyLevel(osg::DEBUG_INFO);
@@ -211,7 +211,7 @@ int main() {
 
     viewer.realize();
 
-    rs274_backplot backplotter{geode};
+    rs274_model modeler{geode};
 
     auto adapt = [gw](const sf::Event& event) {
         auto eq = gw->getEventQueue();
@@ -256,13 +256,13 @@ int main() {
     std::atomic<bool> running{true};
     std::mutex draw_mt;
 
-    std::thread backplot_thread([&] {
+    std::thread rs274_thread([&] {
 
         std::string line;
         while(running && std::getline(std::cin, line)) {
             int status;
             
-            status = backplotter.read(line.c_str());
+            status = modeler.read(line.c_str());
             if(status != RS274NGC_OK) {
                 if(status != RS274NGC_EXECUTE_FINISH) {
                     std::cerr << "Error reading line!: \n";
@@ -271,7 +271,7 @@ int main() {
                 }
             }
             
-            status = backplotter.execute();
+            status = modeler.execute();
             if(status != RS274NGC_OK)
                 return status;
         }
@@ -302,7 +302,7 @@ int main() {
         }
     }
 
-    backplot_thread.join();
+    rs274_thread.join();
 
     return 0;
 }
