@@ -15,3 +15,8 @@
     * TODO determine machining strategy for lathe operations based on different tools and back faces
  * nc_fold_moves
     * fold adajacent G00 moves
+ * nc_stop
+    * nc_stop --at-comment blah --at-line 205 --at-tool 3
+    * stop the output after some condition
+ * nc_sim
+    * simulated model on display
