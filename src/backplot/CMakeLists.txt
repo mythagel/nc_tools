@@ -12,11 +12,12 @@ include_directories(
     ${SFML_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
     ${OPENSCENEGRAPH_INCLUDE_DIRS}
+    ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
 )
 
-add_executable(nc_backplot backplot.cpp rs274_backplot.cpp)
+add_executable(nc_backplot backplot.cpp rs274_backplot.cpp ../rs274_base.cpp)
 target_link_libraries(nc_backplot
     ${SFML_LIBRARIES}
     ${OPENGL_LIBRARIES}

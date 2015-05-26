@@ -26,10 +26,11 @@
 #define SIMULATION_H_
 #include <vector>
 #include "Path.h"
+#include "Tool.h"
+#include "Stock.h"
 #include "Units.h"
 #include "Limits.h"
 #include "Bbox.h"
-#include "geom/polyhedron.h"
 
 namespace cxxcam
 {
@@ -56,12 +57,12 @@ struct simulation_t
 {
 	path::path_t steps;
 	
-    geom::polyhedron_t stock;
-    geom::polyhedron_t tool;
+	Stock stock;
+	Tool tool;
 };
 struct result_t
 {
-    geom::polyhedron_t stock;
+	Stock stock;
 	
 	Bbox bounding_box;
 };

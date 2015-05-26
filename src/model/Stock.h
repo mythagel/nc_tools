@@ -1,4 +1,4 @@
-/* 
+/* cxxcam - C++ CAD/CAM driver library.
  * Copyright (C) 2013  Nicholas Gill
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,30 +16,35 @@
  */
 
 /*
- * rs274_model.h
+ * Stock.h
  *
- *  Created on: 2015-05-22
+ *  Created on: 26/04/2012
  *      Author: nicholas
  */
 
-#ifndef RS274_MODEL_H_
-#define RS274_MODEL_H_
-#include "rs274_base.h"
-#include "Position.h"
+#ifndef STOCK_H_
+#define STOCK_H_
+#include <memory>
+#include "Material.h"
 #include "geom/polyhedron.h"
+#include <iosfwd>
 
-class rs274_model : public rs274_base
+namespace cxxcam
 {
-private:
-    // model
 
-    virtual void _rapid(const Position& pos);
-    virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
-    virtual void _linear(const Position& pos);
+/*
+ * Stores a description and model of the stock from which material will be removed.
+ * Also should reference properties on the material the stock is made out of.
+ */
+struct Stock
+{
+	std::shared_ptr<material::Material> Material;
+	geom::polyhedron_t Model;
 
-public:
-	rs274_model();
-	virtual ~rs274_model() = default;
+	Stock() = default;
+	Stock(const geom::polyhedron_t& model);
 };
 
-#endif /* RS274_MODEL_H_ */
+}
+
+#endif /* STOCK_H_ */

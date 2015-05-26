@@ -90,7 +90,7 @@ result_t run(const simulation_t& simulation)
 {
 	result_t result;
 	
-	result.stock = remove_material(simulation.tool, simulation.stock, simulation.steps.path);
+	result.stock = remove_material(simulation.tool.Model(), simulation.stock.Model, simulation.steps.path);
 	result.bounding_box = bounding_box(simulation.steps.path);
 	
 	return result;

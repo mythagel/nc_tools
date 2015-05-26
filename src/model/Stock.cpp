@@ -1,4 +1,4 @@
-/* 
+/* cxxcam - C++ CAD/CAM driver library.
  * Copyright (C) 2013  Nicholas Gill
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -16,30 +16,25 @@
  */
 
 /*
- * rs274_model.h
+ * Stock.cpp
  *
- *  Created on: 2015-05-22
+ *  Created on: 26/04/2012
  *      Author: nicholas
  */
 
-#ifndef RS274_MODEL_H_
-#define RS274_MODEL_H_
-#include "rs274_base.h"
-#include "Position.h"
-#include "geom/polyhedron.h"
+#include "Stock.h"
+#include <cassert>
+#include <fstream>
+#include "geom/io.h"
+#include <ostream>
 
-class rs274_model : public rs274_base
+namespace cxxcam
 {
-private:
-    // model
 
-    virtual void _rapid(const Position& pos);
-    virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
-    virtual void _linear(const Position& pos);
+Stock::Stock(const geom::polyhedron_t& model)
+ : Model(model)
+{
+}
 
-public:
-	rs274_model();
-	virtual ~rs274_model() = default;
-};
+}
 
-#endif /* RS274_MODEL_H_ */
