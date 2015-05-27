@@ -12,7 +12,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/geom/include
 )
 
-add_executable(nc_model model.cpp rs274_model.cpp Simulation.cpp Tool.cpp Stock.cpp ../rs274_base.cpp)
+add_executable(nc_model model.cpp rs274_model.cpp ../Simulation.cpp ../Tool.cpp ../Stock.cpp ../rs274_base.cpp)
 target_link_libraries(nc_model
     rs274ngc
     cxxcam
