@@ -185,7 +185,10 @@ int convert(sf::Keyboard::Key k) {
 	        break;
         case sf::Keyboard::Pause:
 	        break;
+        case sf::Keyboard::KeyCount:
+	        break;
     }
+    return -1;
 }
 
 int main() {
@@ -243,13 +246,19 @@ int main() {
                     eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 2);
                 break;
             case sf::Event::KeyPressed: {
-                eq->keyPress(convert(event.key.code), event.key.code);
+                auto key = convert(event.key.code);
+                if(key != -1)
+                    eq->keyPress(key, event.key.code);
                 break;
             }
             case sf::Event::KeyReleased: {
-                eq->keyPress(convert(event.key.code), event.key.code);
+                auto key = convert(event.key.code);
+                if(key != -1)
+                    eq->keyPress(key, event.key.code);
                 break;
             }
+            default:
+                break;
         }
     };
 
@@ -275,6 +284,7 @@ int main() {
             if(status != RS274NGC_OK)
                 return status;
         }
+        return 0;
     });
 
     while(running) {
@@ -291,6 +301,8 @@ int main() {
                 case sf::Event::KeyPressed:
                     if(event.key.code == sf::Keyboard::Escape)
                         running = false;
+                    break;
+                default:
                     break;
             }
         }

@@ -111,7 +111,7 @@ void rs274_base::feed_rate(double rate)
 }
 
 
-void rs274_base::feed_reference(FeedReference reference)
+void rs274_base::feed_reference(FeedReference)
 {
 }
 
@@ -128,11 +128,11 @@ void rs274_base::plane(Plane pl)
 }
 
 
-void rs274_base::cutter_radius_comp(double radius)
+void rs274_base::cutter_radius_comp(double)
 {
 }
 
-void rs274_base::cutter_radius_comp_start(Side direction)
+void rs274_base::cutter_radius_comp_start(Side)
 {
 }
 
@@ -242,7 +242,7 @@ void rs274_base::probe(const Position& pos)
 }
 
 
-void rs274_base::dwell(double seconds)
+void rs274_base::dwell(double)
 {
 }
 
@@ -266,6 +266,7 @@ void rs274_base::spindle_speed(double r)
 void rs274_base::spindle_mode(double) {
 }
 double rs274_base::spindle_mode() const {
+    return 0.0;
 }
 
 void rs274_base::spindle_stop()
@@ -274,12 +275,12 @@ void rs274_base::spindle_stop()
 }
 
 
-void rs274_base::spindle_orient(double orientation, Direction direction)
+void rs274_base::spindle_orient(double, Direction)
 {
 }
 
 
-void rs274_base::tool_length_offset(double length)
+void rs274_base::tool_length_offset(double)
 {
 }
 
@@ -289,16 +290,16 @@ void rs274_base::tool_change(int slot)
 }
 
 
-void rs274_base::tool_select(int i)
+void rs274_base::tool_select(int)
 {
 }
 
-void rs274_base::axis_clamp(Axis axis)
+void rs274_base::axis_clamp(Axis)
 {
 }
 
 
-void rs274_base::comment(const char *s)
+void rs274_base::comment(const char *)
 {
 }
 
@@ -330,7 +331,7 @@ void rs274_base::coolant_flood_on()
 }
 
 
-void rs274_base::message(const char *s)
+void rs274_base::message(const char *)
 {
 }
 
@@ -359,7 +360,7 @@ void rs274_base::probe_on()
 {
 }
 
-void rs274_base::axis_unclamp(Axis axis)
+void rs274_base::axis_unclamp(Axis)
 {
 }
 
@@ -395,7 +396,7 @@ Motion rs274_base::motion_mode() const
 {
     return _motion_mode;
 }
-void rs274_base::get_parameter_filename(char* filename, size_t max_size) const
+void rs274_base::get_parameter_filename(char* filename, size_t) const
 {
     filename[0] = 0;
 }
