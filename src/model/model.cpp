@@ -1,9 +1,21 @@
 #include "rs274_model.h"
 #include "rs274ngc_return.hh"
+#include <boost/program_options.hpp>
 
 #include <iostream>
 
-int main() {
+namespace po = boost::program_options;
+
+int main(int argc, char* argv[]) {
+    po::options_description options("nc_model");
+    std::vector<std::string> args(argv, argv + argc);
+    args.erase(begin(args));
+
+    options.add_options()
+        ("help,h", "display this help and exit")
+        ("stock", "Stock model file")
+    ;
+
     rs274_model modeler;
 
     std::string line;

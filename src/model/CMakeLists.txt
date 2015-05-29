@@ -4,8 +4,10 @@ IF(UNIX)
 ENDIF()
 
 FIND_PACKAGE(Threads REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 
 include_directories(
+    ${Boost_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
@@ -14,6 +16,7 @@ include_directories(
 
 add_executable(nc_model model.cpp rs274_model.cpp ../Simulation.cpp ../Tool.cpp ../Stock.cpp ../rs274_base.cpp)
 target_link_libraries(nc_model
+    ${Boost_LIBRARIES}
     rs274ngc
     cxxcam
     geom
