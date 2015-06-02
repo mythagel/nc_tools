@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include <iostream>
+#include <lua.hpp>
 
 namespace po = boost::program_options;
 
