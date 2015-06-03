@@ -35,7 +35,10 @@
  * store stock model
  * switch tool on tool changes
  * use sim functions to update stored model.
- * update ui?
+ *
+ * tool table belongs in rs274_base because it is a prereq of basic tool path expansion (length and diameter min) while
+ * other parameters are necessary for model generation.
+ *
  * */
 
 void rs274_model::_rapid(const Position& pos)
