@@ -31,7 +31,8 @@ namespace lua {
 state::state()
  : L(luaL_newstate()){
 }
-state::state(state&& s) {
+state::state(state&& s)
+ : L(nullptr) {
     using std::swap;
     swap(L, s.L);
 }
@@ -44,7 +45,7 @@ state::operator lua_State*() {
     return L;
 }
 state::~state() {
-    lua_close(L);
+    if(L) lua_close(L);
 }
 
 }
