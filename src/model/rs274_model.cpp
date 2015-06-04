@@ -41,7 +41,7 @@
  *
  * */
 
-void rs274_model::_rapid(const Position& pos)
+void rs274_model::_rapid(const Position&)
 {
 }
 

@@ -17,12 +17,13 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
 )
 
-add_executable(nc_backplot backplot.cpp rs274_backplot.cpp ../rs274_base.cpp)
+add_executable(nc_backplot backplot.cpp rs274_backplot.cpp)
 target_link_libraries(nc_backplot
     ${SFML_LIBRARIES}
     ${OPENGL_LIBRARIES}
     ${OPENSCENEGRAPH_LIBRARIES}
+    ${CMAKE_THREAD_LIBS_INIT}
     rs274ngc
     cxxcam
-    ${CMAKE_THREAD_LIBS_INIT}
+    nc_base
 )

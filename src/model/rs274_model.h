@@ -24,7 +24,7 @@
 
 #ifndef RS274_MODEL_H_
 #define RS274_MODEL_H_
-#include "rs274_base.h"
+#include "nc_base/rs274_base.h"
 #include "Position.h"
 #include "geom/polyhedron.h"
 
