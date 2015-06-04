@@ -16,38 +16,19 @@
  */
 
 /*
- * luastate.cpp
+ * throw_if.h
  *
- *  Created on: 2015-06-03
+ *  Created on: 2015-06-04
  *      Author: nicholas
  */
 
-#include "luastate.h"
-#include <lua.hpp>
-#include <utility>
-#include "../throw_if.h"
+#ifndef THROW_IF_H_
+#define THROW_IF_H_
+#include <stdexcept>
 
-namespace lua {
-
-state::state()
- : L(luaL_newstate()) {
-    throw_if(!L, "Unable to create lua state");
-}
-state::state(state&& s)
- : L(nullptr) {
-    using std::swap;
-    swap(L, s.L);
-}
-state& state::operator=(state&& s) {
-    using std::swap;
-    swap(L, s.L);
-    return *this;
-}
-state::operator lua_State*() {
-    return L;
-}
-state::~state() {
-    if(L) lua_close(L);
+inline void throw_if(bool cond, const std::string& msg) {
+    if(cond)
+        throw std::runtime_error(msg);
 }
 
-}
+#endif /* THROW_IF_H_ */

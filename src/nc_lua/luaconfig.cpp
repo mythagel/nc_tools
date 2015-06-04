@@ -23,11 +23,30 @@
  */
 
 #include "luaconfig.h"
+#include <stdexcept>
+#include <lua.hpp>
 
 namespace lua {
 
 config::config() {
 }
+
+bool config::get(const char* table, const char* field, std::string& value) {
+    lua_getglobal(L, table);
+    lua_getfield(L, -1, field);
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 2);
+        return false;
+    }
+    if (!lua_isstring(L, -1)) {
+        lua_pop(L, 2);
+        throw std::runtime_error("Expected string value");
+    }
+    value = lua_tostring(L, -1);
+    lua_pop(L, 2);
+    return true;
+}
+
 config::~config() {
 }
 

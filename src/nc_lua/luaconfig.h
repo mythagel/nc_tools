@@ -39,6 +39,7 @@ private:
     state L;
 public:
     config();
+    bool get(const char* table, const char* field, std::string& value);
     ~config();
 };
 
