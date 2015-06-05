@@ -27,13 +27,20 @@
 #include "rs274ngc.hh"
 #include "Position.h"
 #include "Math.h"
+#include "nc_lua/state.h"
+#include <string>
 
 class rs274_base : public rs274ngc
 {
+public:
+	rs274_base(const std::string& conf = {});
+	virtual ~rs274_base();
 private:
 	virtual void interp_init();
 
 protected:
+    mutable lua::state L;
+
 	Plane       _active_plane = Plane::XY;
 	int               _active_slot = 1;
 	double            _feed_rate = 0.0;
@@ -50,7 +57,6 @@ protected:
 	Direction   _spindle_turning;
 	double            _traverse_rate;
 
-	int                      _tool_max = 68;
 	Tool         _tools[CANON_TOOL_MAX];
 
     cxxcam::Position convert(const Position& p) const;
@@ -121,10 +127,6 @@ private:
 	virtual unsigned int tool_max() const;
 	virtual Tool tool(int pocket) const;
 	virtual double rapid_rate() const;
-
-public:
-	rs274_base();
-	virtual ~rs274_base();
 };
 
 #endif /* RS274_BASE_H_ */

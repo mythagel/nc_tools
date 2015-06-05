@@ -16,30 +16,38 @@
  */
 
 /*
- * luastate.h
+ * state.cpp
  *
  *  Created on: 2015-06-03
  *      Author: nicholas
  */
 
-#ifndef LUASTATE_H_
-#define LUASTATE_H_
-
-struct lua_State;
+#include "state.h"
+#include <lua.hpp>
+#include <utility>
+#include "../throw_if.h"
 
 namespace lua {
 
-struct state {
-    lua_State* L;
-    state();
-    state(const state&) = delete;
-    state& operator=(const state&) = delete;
-    state(state&& s);
-    state& operator=(state&&);
-    operator lua_State*();
-    ~state();
-};
-
+state::state()
+ : L(luaL_newstate()) {
+    throw_if(!L, "Unable to create lua state");
+}
+state::state(state&& s)
+ : L(nullptr) {
+    using std::swap;
+    swap(L, s.L);
+}
+state& state::operator=(state&& s) {
+    using std::swap;
+    swap(L, s.L);
+    return *this;
+}
+state::operator lua_State*() {
+    return L;
+}
+state::~state() {
+    if(L) lua_close(L);
 }
 
-#endif /* LUASTATE_H_ */
+}

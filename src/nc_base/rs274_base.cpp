@@ -25,6 +25,40 @@
 #include "rs274_base.h"
 #include <cmath>
 #include <cstring>
+#include <lua.hpp>
+#include <stdexcept>
+#include <iostream>
+
+namespace {
+
+std::string find_config_file(const std::string& conf) {
+    if(!conf.empty())
+        return conf;
+    return "nc_tools.conf";
+}
+
+}
+
+rs274_base::rs274_base(const std::string& conf)
+{
+    auto config = find_config_file(conf);
+    try {
+        if(luaL_dofile(L, config.c_str())) {
+            std::string ex = lua_tostring(L, -1);
+            lua_pop(L, 1);
+            throw std::runtime_error(ex);
+        }
+    } catch(const std::exception& ex) {
+        if(!conf.empty())
+            throw;
+        std::cerr << ex.what() << "\n";
+    }
+
+	init();
+}
+rs274_base::~rs274_base()
+{
+}
 
 cxxcam::Position rs274_base::convert(const Position& p) const
 {
@@ -434,7 +468,17 @@ int rs274_base::tool_slot() const
 }
 unsigned int rs274_base::tool_max() const
 {
-    return _tool_max;
+    lua_getglobal(L, "tool_table");
+    size_t count = 0;
+
+    auto t = lua_gettop(L);
+    lua_pushnil(L);
+    while(lua_next(L, t)) {
+        ++count;
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 2);
+    return count;
 }
 Tool rs274_base::tool(int pocket) const
 {
@@ -445,10 +489,3 @@ double rs274_base::rapid_rate() const
     return _traverse_rate;
 }
 
-rs274_base::rs274_base()
-{
-	init();
-}
-rs274_base::~rs274_base()
-{
-}

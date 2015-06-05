@@ -25,7 +25,7 @@
 #ifndef LUACONFIG_H_
 #define LUACONFIG_H_
 #include <string>
-#include "luastate.h"
+#include "state.h"
 
 namespace lua {
 

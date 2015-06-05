@@ -9,7 +9,7 @@ include_directories(
     ${LUA_INCLUDE_DIR}
 )
 
-add_library(nc_lua STATIC luaconfig.cpp luastate.cpp)
+add_library(nc_lua STATIC luaconfig.cpp state.cpp)
 target_link_libraries(nc_lua
     ${LUA_LIBRARIES}
 )
