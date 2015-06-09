@@ -60,7 +60,6 @@ rs274_base::rs274_base(const std::string& conf)
             lua_pop(L, 1);
             throw std::runtime_error(ex);
         }
-        std::clog << "Using config " << config << "\n"; 
     } catch(const std::exception& ex) {
         if(!conf.empty())
             throw;
@@ -481,21 +480,38 @@ int rs274_base::tool_slot() const
 }
 unsigned int rs274_base::tool_max() const
 {
-    // TODO has to be maximum tool table entry number
-    // not count of entries...
-    lua_getglobal(L, "tool_table");
-    if (lua_isnil(L, -1)) {
-        lua_pop(L, 1);
-        return 0;
-    }
-    
-    auto count = table_size(L);
-    lua_pop(L, 1);
-    return count;
+    return CANON_TOOL_MAX;
 }
 Tool rs274_base::tool(int pocket) const
 {
-    return _tools[pocket];
+    lua_getglobal(L, "tool_table");
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        return {};
+    }
+
+    lua_pushinteger(L, pocket);
+    lua_gettable(L, -2);
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 2);
+        return {};
+    }
+    
+    Tool t;
+    t.id = pocket;
+    
+    lua_getfield(L, -1, "length");
+    if(lua_isnumber(L, -1))
+        t.length = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "diameter");
+    if(lua_isnumber(L, -1))
+        t.diameter = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_pop(L, 1);
+    return t;
 }
 double rs274_base::rapid_rate() const
 {

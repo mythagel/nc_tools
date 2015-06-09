@@ -57,8 +57,6 @@ protected:
 	Direction   _spindle_turning;
 	double            _traverse_rate;
 
-	Tool         _tools[CANON_TOOL_MAX];
-
     cxxcam::Position convert(const Position& p) const;
 private:
 
