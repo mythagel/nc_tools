@@ -28,13 +28,25 @@
 #include <lua.hpp>
 #include <stdexcept>
 #include <iostream>
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace {
 
 std::string find_config_file(const std::string& conf) {
     if(!conf.empty())
         return conf;
-    return "nc_tools.conf";
+
+    /* Search cwd then parents for nc_tools.conf */
+    auto cwd = fs::current_path();
+    while(!cwd.empty()) {
+        auto candidate = cwd / "nc_tools.conf";
+        if(exists(candidate))
+            return candidate.native();
+        cwd = cwd.parent_path();
+    }
+    return {};
 }
 
 }
@@ -48,6 +60,7 @@ rs274_base::rs274_base(const std::string& conf)
             lua_pop(L, 1);
             throw std::runtime_error(ex);
         }
+        std::clog << "Using config " << config << "\n"; 
     } catch(const std::exception& ex) {
         if(!conf.empty())
             throw;
@@ -468,16 +481,16 @@ int rs274_base::tool_slot() const
 }
 unsigned int rs274_base::tool_max() const
 {
+    // TODO has to be maximum tool table entry number
+    // not count of entries...
     lua_getglobal(L, "tool_table");
-    size_t count = 0;
-
-    auto t = lua_gettop(L);
-    lua_pushnil(L);
-    while(lua_next(L, t)) {
-        ++count;
+    if (lua_isnil(L, -1)) {
         lua_pop(L, 1);
+        return 0;
     }
-    lua_pop(L, 2);
+    
+    auto count = table_size(L);
+    lua_pop(L, 1);
     return count;
 }
 Tool rs274_base::tool(int pocket) const
