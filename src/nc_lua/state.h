@@ -24,6 +24,7 @@
 
 #ifndef LUASTATE_H_
 #define LUASTATE_H_
+#include <cstddef>
 
 struct lua_State;
 
@@ -39,6 +40,8 @@ struct state {
     operator lua_State*();
     ~state();
 };
+
+size_t table_size(state& L);
 
 }
 

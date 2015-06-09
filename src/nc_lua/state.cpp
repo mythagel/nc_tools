@@ -50,4 +50,18 @@ state::~state() {
     if(L) lua_close(L);
 }
 
+size_t table_size(state& L) {
+    size_t count = 0;
+
+    auto t = lua_gettop(L);
+    lua_pushnil(L);
+    while(lua_next(L, t)) {
+        ++count;
+        lua_pop(L, 1);
+    }
+    lua_pop(L, 1);
+    return count;
+    
+}
+
 }
