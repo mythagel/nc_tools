@@ -27,39 +27,77 @@
 #include <cstring>
 #include "Path.h"
 #include "Simulation.h"
+#include <fstream>
+#include "throw_if.h"
+#include "geom/primitives.h"
 
-/* TODO
- * need tool table (list of tools)
- * convert tools to models
- * generate stock model
- * store stock model
- * switch tool on tool changes
- * use sim functions to update stored model.
- *
- * tool table belongs in rs274_base because it is a prereq of basic tool path expansion (length and diameter min) while
- * other parameters are necessary for model generation.
- *
- * */
-
-void rs274_model::_rapid(const Position&)
-{
+void rs274_model::_rapid(const Position&) {
 }
 
-void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation)
-{
+void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
 	auto steps = cxxcam::path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? cxxcam::path::ArcDirection::Clockwise : cxxcam::path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
-    // TODO expand toolpath and update model.
+    _model = cxxcam::simulation::remove_material(_tool, _model, steps);
 }
 
 
-void rs274_model::_linear(const Position& pos)
-{
+void rs274_model::_linear(const Position& pos) {
 	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, 1).path;
-    // TODO expand toolpath and update model
+    _model = cxxcam::simulation::remove_material(_tool, _model, steps);
+}
+void rs274_model::tool_change(int slot) {
+    lua_getglobal(L, "tool_table");
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        _tool = {};
+        return;
+    }
 
+    lua_pushinteger(L, slot);
+    lua_gettable(L, -2);
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 2);
+        _tool = {};
+        return;
+    }
+    
+    double length = 0.0;
+    double diameter = 0.0;
+    double flute_length = 0.0;
+    double shank_diameter = 0.0;
+
+    lua_getfield(L, -1, "length");
+    if(lua_isnumber(L, -1))
+        length = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "diameter");
+    if(lua_isnumber(L, -1))
+        diameter = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "flute_length");
+    if(lua_isnumber(L, -1))
+        flute_length = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, -1, "shank_diameter");
+    if(lua_isnumber(L, -1))
+        shank_diameter = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
+	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter, shank_diameter, 8);
+    auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter, diameter, 8);
+    _tool = shank + flutes;
+
+    lua_pop(L, 1);
 }
 
-rs274_model::rs274_model()
- : rs274_base()
-{
+rs274_model::rs274_model(const std::string& stock_filename)
+ : rs274_base() {
+    std::ifstream is(stock_filename);
+    throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
+}
+
+geom::polyhedron_t rs274_model::model() const {
+    return _model;
 }

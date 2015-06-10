@@ -2,9 +2,9 @@
 #include "geom/primitives.h"
 #include <iostream>
 #include <boost/program_options.hpp>
+#include "print_exception.h"
 #include <vector>
 #include <string>
-#include "print_exception.h"
 
 namespace po = boost::program_options;
 

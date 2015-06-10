@@ -27,18 +27,24 @@
 #include "nc_base/rs274_base.h"
 #include "Position.h"
 #include "geom/polyhedron.h"
+#include <string>
 
 class rs274_model : public rs274_base
 {
 private:
-    // model
+    geom::polyhedron_t _model;
+    geom::polyhedron_t _tool;
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
+	virtual void tool_change(int slot);
 
 public:
-	rs274_model();
+	rs274_model(const std::string& stock_filename);
+
+    geom::polyhedron_t model() const;
+
 	virtual ~rs274_model() = default;
 };
 

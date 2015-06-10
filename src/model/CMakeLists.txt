@@ -16,7 +16,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/geom/include
 )
 
-add_executable(nc_model model.cpp rs274_model.cpp ../Simulation.cpp ../Tool.cpp ../Stock.cpp)
+add_executable(nc_model model.cpp rs274_model.cpp ../Simulation.cpp ../Tool.cpp ../Stock.cpp ../print_exception.cpp)
 target_link_libraries(nc_model
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}

@@ -25,8 +25,7 @@
 #ifndef LUASTATE_H_
 #define LUASTATE_H_
 #include <cstddef>
-
-struct lua_State;
+#include <lua.hpp>
 
 namespace lua {
 
