@@ -41,7 +41,7 @@ void rs274_model::_arc(const Position& end, const Position& center, const cxxcam
 
 
 void rs274_model::_linear(const Position& pos) {
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, 1).path;
+	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
     _model = cxxcam::simulation::remove_material(_tool, _model, steps);
 }
 void rs274_model::tool_change(int slot) {

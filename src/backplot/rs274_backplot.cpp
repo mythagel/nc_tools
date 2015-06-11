@@ -58,7 +58,7 @@ void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& step
 
 void rs274_backplot::_rapid(const Position& pos)
 {
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, 1).path;
+	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
     pushBackplot(geode, steps, false);
 }
 
@@ -70,7 +70,7 @@ void rs274_backplot::_arc(const Position& end, const Position& center, const cxx
 
 void rs274_backplot::_linear(const Position& pos)
 {
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, 1).path;
+	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
     pushBackplot(geode, steps, true);
 }
 
