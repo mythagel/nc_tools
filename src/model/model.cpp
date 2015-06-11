@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "display this help and exit")
         ("stock", po::value<std::string>()->required(), "Stock model file")
+        ("tool", po::value<int>(), "Default tool")
     ;
 
     try {
@@ -31,6 +32,13 @@ int main(int argc, char* argv[]) {
         notify(vm);
 
         rs274_model modeler(vm["stock"].as<std::string>());
+
+        if(vm.count("tool")) {
+            std::stringstream s;
+            s << "M06 T" << vm["tool"].as<int>();
+            modeler.read(s.str().c_str());
+            modeler.execute();
+        }
 
         std::string line;
         while(std::getline(std::cin, line)) {
