@@ -30,19 +30,51 @@
 #include <fstream>
 #include "throw_if.h"
 #include "geom/primitives.h"
+#include "fold_adjacent.h"
+#include "geom/ops.h"
+#include <thread>
+#include <future>
+#include <iterator>
+#include <algorithm>
+
+namespace {
+
+unsigned int hardware_concurrency() {
+    auto cores = std::thread::hardware_concurrency();
+    if(!cores) cores = 4;
+    return cores;
+}
+}
+std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion);
 
 void rs274_model::_rapid(const Position&) {
 }
 
 void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
-	auto steps = cxxcam::path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? cxxcam::path::ArcDirection::Clockwise : cxxcam::path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
-    _model = cxxcam::simulation::remove_material(_tool, _model, steps);
+    using namespace cxxcam;
+	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_tool_motion), 
+		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		{
+			return simulation::sweep_tool(_tool, s0, s1);
+		});
+    if(_tool_motion.size() > 64)
+        _tool_motion = parallel_fold_toolpath(hardware_concurrency(), _tool_motion);
+//    _model = simulation::remove_material(_tool, _model, steps);
 }
 
 
 void rs274_model::_linear(const Position& pos) {
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
-    _model = cxxcam::simulation::remove_material(_tool, _model, steps);
+    using namespace cxxcam;
+	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_tool_motion), 
+		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		{
+			return simulation::sweep_tool(_tool, s0, s1);
+		});
+    if(_tool_motion.size() > 64)
+        _tool_motion = parallel_fold_toolpath(hardware_concurrency(), _tool_motion);
+//    _model = simulation::remove_material(_tool, _model, steps);
 }
 void rs274_model::tool_change(int slot) {
     lua_getglobal(L, "tool_table");
@@ -98,6 +130,45 @@ rs274_model::rs274_model(const std::string& stock_filename)
     throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
 }
 
-geom::polyhedron_t rs274_model::model() const {
+std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion) {
+    if(n == 1) return { geom::merge(tool_motion) };
+    if(tool_motion.size() == 1) return tool_motion;
+
+    unsigned int chunk_size = std::floor(tool_motion.size() / static_cast<double>(n));
+    unsigned int rem = tool_motion.size() % n;
+    
+    typedef std::future<geom::polyhedron_t> polyhedron_future;
+    std::vector<polyhedron_future> folded;
+
+    for(unsigned int i = 0; i < n; ++i) {
+
+        std::packaged_task<geom::polyhedron_t()> fold([&tool_motion, chunk_size, rem, i]() {
+            auto begin = (chunk_size * i) + (i < rem ? i : rem);
+            auto end = (begin + chunk_size) + (i < rem ? 1 : 0);
+
+            return geom::merge(std::vector<geom::polyhedron_t>(std::make_move_iterator(tool_motion.begin() + begin), std::make_move_iterator(tool_motion.begin() + end)));
+        });
+
+        folded.push_back(fold.get_future());
+        std::thread(std::move(fold)).detach();
+    }
+
+    std::vector<geom::polyhedron_t> result;
+    std::transform(begin(folded), end(folded), std::back_inserter(result), [](polyhedron_future& f){ return f.get(); });
+    return result;
+}
+
+geom::polyhedron_t rs274_model::model() {
+
+    auto cores = hardware_concurrency();
+    while(true) {
+        _tool_motion = parallel_fold_toolpath(cores, _tool_motion);
+        if (cores == 1) break;
+        cores /= 2;
+    }
+
+    auto tool_path = geom::merge(_tool_motion);
+    _tool_motion.clear();
+    _model -= tool_path;
     return _model;
 }
