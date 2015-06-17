@@ -283,6 +283,7 @@ int main() {
             status = backplotter.execute();
             if(status != RS274NGC_OK)
                 return status;
+            std::cerr << line << "\n";
         }
         return 0;
     });

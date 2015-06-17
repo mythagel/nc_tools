@@ -56,6 +56,7 @@ int main(int argc, char* argv[]) {
             status = modeler.execute();
             if(status != RS274NGC_OK)
                 return status;
+            std::cerr << line << "\n";
         }
 
         std::cout << geom::format::off << modeler.model();
