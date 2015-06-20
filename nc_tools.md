@@ -20,3 +20,5 @@
     * stop the output after some condition
  * nc_sim
     * simulated model on display
+ * nc_bounds
+    * bounding box
