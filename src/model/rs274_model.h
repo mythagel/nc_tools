@@ -35,7 +35,7 @@ class rs274_model : public rs274_base
 private:
     geom::polyhedron_t _model;
     geom::polyhedron_t _tool;
-    std::vector<geom::polyhedron_t> _tool_motion;
+    std::vector<geom::polyhedron_t> _toolpath;
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);

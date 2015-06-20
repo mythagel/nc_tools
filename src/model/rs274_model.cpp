@@ -44,7 +44,16 @@ unsigned int hardware_concurrency() {
     if(!cores) cores = 4;
     return cores;
 }
+
 }
+
+/*
+ * vector of future polyhedrons
+ * queue of packaged_tasks
+ * pool pulls tasks from queue
+ * ...
+ * */
+geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_motion);
 std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion);
 
 void rs274_model::_rapid(const Position&) {
@@ -53,28 +62,28 @@ void rs274_model::_rapid(const Position&) {
 void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
     using namespace cxxcam;
 	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
-    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_tool_motion), 
+
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
 		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
 		{
 			return simulation::sweep_tool(_tool, s0, s1);
 		});
-    if(_tool_motion.size() > 64)
-        _tool_motion = parallel_fold_toolpath(hardware_concurrency(), _tool_motion);
-//    _model = simulation::remove_material(_tool, _model, steps);
+    if(_toolpath.size() >= 512 * hardware_concurrency())
+        _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
 }
 
 
 void rs274_model::_linear(const Position& pos) {
     using namespace cxxcam;
 	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
-    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_tool_motion), 
+
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
 		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
 		{
 			return simulation::sweep_tool(_tool, s0, s1);
 		});
-    if(_tool_motion.size() > 64)
-        _tool_motion = parallel_fold_toolpath(hardware_concurrency(), _tool_motion);
-//    _model = simulation::remove_material(_tool, _model, steps);
+    if(_toolpath.size() >= 512 * hardware_concurrency())
+        _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
 }
 void rs274_model::tool_change(int slot) {
     lua_getglobal(L, "tool_table");
@@ -119,7 +128,8 @@ void rs274_model::tool_change(int slot) {
 
 	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter, shank_diameter, 8);
     auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter, diameter, 8);
-    _tool = shank + flutes;
+    //_tool = shank + flutes;
+    _tool = flutes;
 
     lua_pop(L, 1);
 }
@@ -157,18 +167,20 @@ std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vect
     std::transform(begin(folded), end(folded), std::back_inserter(result), [](polyhedron_future& f){ return f.get(); });
     return result;
 }
-
-geom::polyhedron_t rs274_model::model() {
-
+geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_motion) {
     auto cores = hardware_concurrency();
-    while(true) {
-        _tool_motion = parallel_fold_toolpath(cores, _tool_motion);
-        if (cores == 1) break;
+    while(cores > 1) {
+        tool_motion = parallel_fold_toolpath(cores, tool_motion);
         cores /= 2;
     }
+    return geom::merge(tool_motion);
+}
 
-    auto tool_path = geom::merge(_tool_motion);
-    _tool_motion.clear();
-    _model -= tool_path;
+geom::polyhedron_t rs274_model::model() {
+    if(!_toolpath.empty()) {
+        auto toolpath = parallel_fold_toolpath(_toolpath);
+        _toolpath.clear();
+        _model -= toolpath;
+    }
     return _model;
 }
