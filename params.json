@@ -1,0 +1,1 @@
+{"name":"nc_tools","tagline":"CNC GCode toolpath viewer/backplotter","body":"nc_tools\r\n========\r\n\r\nGCode viewer.\r\n\r\n```\r\n$ cat robot2.ngc | backplot\r\n```\r\n\r\n![robot backplot](https://raw.github.com/mythagel/backplot/master/robot_backplot.png)\r\n","google":"","note":"Don't delete this file! It's used internally to help with page regeneration."}
