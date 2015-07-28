@@ -61,7 +61,7 @@ void rs274_model::_rapid(const Position&) {
 
 void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
     using namespace cxxcam;
-	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}, 1).path;
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
 		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
