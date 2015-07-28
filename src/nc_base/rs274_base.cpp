@@ -55,7 +55,7 @@ rs274_base::rs274_base(const std::string& conf)
 {
     auto config = find_config_file(conf);
     try {
-        if(luaL_dofile(L, config.c_str())) {
+        if(!config.empty() && luaL_dofile(L, config.c_str())) {
             std::string ex = lua_tostring(L, -1);
             lua_pop(L, 1);
             throw std::runtime_error(ex);
