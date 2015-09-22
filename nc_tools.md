@@ -22,6 +22,8 @@
     * bounding box
  * nc_scale
     * scale gcode axes up or down
+ * nc_transform
+    * transform / rotate stock for next operation
 
 Generators
  * lathe_path
