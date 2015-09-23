@@ -64,7 +64,8 @@ void rs274_backplot::_rapid(const Position& pos)
 
 void rs274_backplot::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation)
 {
-	auto steps = cxxcam::path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? cxxcam::path::ArcDirection::Clockwise : cxxcam::path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+    using namespace cxxcam::path;
+	auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
     pushBackplot(geode, steps, true);
 }
 
