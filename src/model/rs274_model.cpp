@@ -126,8 +126,8 @@ void rs274_model::tool_change(int slot) {
         shank_diameter = lua_tonumber(L, -1);
     lua_pop(L, 1);
 
-	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter, shank_diameter, 32);
-    auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter, diameter, 32);
+	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter/2, shank_diameter/2, 32);
+    auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter/2, diameter/2, 32);
     //_tool = shank + flutes;
     _tool = flutes;
 

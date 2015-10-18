@@ -37,13 +37,13 @@ geom::polyhedron_t make_mill_tool(const Tool::Mill& em)
 	using namespace geom;
 
 	// TODO determine slices based on height under arc + accuracy.
-	auto shank = make_cone( {0, 0, em.length}, {0, 0, em.cutting_length}, em.shank_diameter, em.shank_diameter, 8);
+	auto shank = make_cone( {0, 0, em.length}, {0, 0, em.cutting_length}, em.shank_diameter/2, em.shank_diameter/2, 8);
 	
 	switch(em.type)
 	{
 		case Tool::Mill::Type::End:
 		{
-			auto flutes = make_cone( {0, 0, em.cutting_length}, {0, 0, 0}, em.mill_diameter, em.mill_diameter, 8);
+			auto flutes = make_cone( {0, 0, em.cutting_length}, {0, 0, 0}, em.mill_diameter/2, em.mill_diameter/2, 8);
 			return shank + flutes;
 		}
 		default:
@@ -51,7 +51,7 @@ geom::polyhedron_t make_mill_tool(const Tool::Mill& em)
 	}
 
 // Shank tapers to cutting diameter.
-//	auto shank = make_cone(0, 0, em.cutting_length+em.shank_length, 0, 0, em.cutting_length, em.shank_diameter, em.cutting_diameter, 64);
+//	auto shank = make_cone(0, 0, em.cutting_length+em.shank_length, 0, 0, em.cutting_length, em.shank_diameter/2, em.cutting_diameter/2, 64);
 
 	throw error("Unable to create tool geometry model");
 }
