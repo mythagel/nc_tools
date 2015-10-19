@@ -85,6 +85,8 @@ void rs274_model::_linear(const Position& pos) {
     if(_toolpath.size() >= 512 * hardware_concurrency())
         _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
 }
+/* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
+ * */
 void rs274_model::tool_change(int slot) {
     lua_getglobal(L, "tool_table");
     if (!lua_istable(L, -1)) {
