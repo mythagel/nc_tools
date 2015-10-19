@@ -24,6 +24,7 @@
     * scale gcode axes up or down
  * nc_transform
     * transform / rotate stock for next operation
+    * nc_transform -a 45 -b 45 -x -30 # rotate 45 deg around x, 45 around y, translate -30 on x
 
 Generators
  * lathe_path
