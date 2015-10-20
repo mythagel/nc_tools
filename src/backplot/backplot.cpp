@@ -206,6 +206,7 @@ int main() {
     auto gw = viewer.setUpViewerAsEmbeddedInWindow(0, 0, size.x, size.y);
 
     viewer.setCameraManipulator(new osgGA::TrackballManipulator);
+    viewer.getCameraManipulator()->setHomePosition({0, 0, 1}, {0,0,0}, {0,0,1}, false);
     osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
     viewer.addEventHandler(statesetManipulator.get());
 
