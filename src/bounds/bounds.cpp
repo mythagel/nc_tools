@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
             status = bounding_box.execute();
             if(status != RS274NGC_OK)
                 return status;
-            std::cerr << line << "\n";
         }
 
         std::cout << bounding_box.bounding_box() << "\n";
