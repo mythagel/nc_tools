@@ -1,30 +1,32 @@
  * nc_backplot
     * display a backplot of the incoming gcode - no output
     * backplot renamed to nc_backplot
- * nc_shortlines
+ * ~~nc_shortlines~~
     * split incoming gcode into short line segments
     * cli option --arc-only
- * nc_delay
+ * ~~nc_delay~~
     * delay the output of the gcode based on the machining time option 1x 2x, etc
  * nc_model
     * generate a 3d model of the incoming gcode, tools and stock
- * nc_rename_axis
+ * ~~nc_rename_axis~~
     * rename an axis, a=> is delete, a=>b is rename, a<=>b is swap
- * nc_fold_moves
+ * ~~nc_fold_moves~~
     * fold adajacent G00 moves
- * nc_pick
+ * ~~nc_pick~~
     * nc_stop --at-comment blah --at-line 205 --at-tool 3
     * selectively pick gcode from file
     * e.g. within bounding box
- * nc_sim
+ * ~~nc_sim~~
     * simulated model on display
  * nc_bounds
     * bounding box
- * nc_scale
+ * ~~nc_scale~~
     * scale gcode axes up or down
  * nc_transform
     * transform / rotate stock for next operation
     * nc_transform -a 45 -b 45 -x -30 # rotate 45 deg around x, 45 around y, translate -30 on x
+ * nc_gen_tooltable
+    * generate linuxcnc tool table from nc_tools.conf
 
 Generators
  * lathe_path
