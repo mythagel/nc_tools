@@ -13,6 +13,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
+    ${PROJECT_SOURCE_DIR}/deps/geom/include
 )
 
 add_executable(nc_bounds bounds.cpp rs274_bounds.cpp ../print_exception.cpp)
@@ -22,4 +23,5 @@ target_link_libraries(nc_bounds
     ${LUA_LIBRARIES}
     rs274ngc
     nc_base
+    geom
 )

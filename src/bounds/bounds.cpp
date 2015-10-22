@@ -2,13 +2,33 @@
 #include "rs274ngc_return.hh"
 #include <boost/program_options.hpp>
 #include "print_exception.h"
+#include "geom/polyhedron.h"
+#include "geom/query.h"
+#include "../throw_if.h"
 
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>
+#include <iomanip>
 #include <lua.hpp>
 
 namespace po = boost::program_options;
+
+std::string r6(double v) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << v;
+    auto s = ss.str();
+    
+    s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+    if(s.back() == '.') s.pop_back();
+    return s;
+}
+
+std::ostream& operator<<(std::ostream& os, const geom::query::bbox_3& b) {
+    os << "min: {" << r6(b.min.x) << ", " << r6(b.min.y) << ", " << r6(b.min.z) <<"} max: {" << r6(b.max.y) << ", " << r6(b.max.y) << ", " << r6(b.max.z) <<"}";
+    return os;
+}
 
 int main(int argc, char* argv[]) {
     po::options_description options("nc_bounds");
@@ -17,8 +37,9 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
-        ("cut,c", "track cuts")
-        ("rapid,r", "track rapids")
+        ("cut,c", "track cuts in gcode")
+        ("rapid,r", "track rapids in gcode")
+        ("model,m", "calculate bounding box of model")
     ;
 
     try {
@@ -31,31 +52,40 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        bool cut = vm.count("cut");
-        bool rapid = vm.count("rapid");
-        if(! (cut || rapid))
-            cut = true;
-        rs274_bounds bounding_box(cut, rapid);
+        if (vm.count("model")) {
+            geom::polyhedron_t model;
+            throw_if(!(std::cin >> geom::format::off >> model), "Unable to read model from file");
 
-        std::string line;
-        while(std::getline(std::cin, line)) {
-            int status;
+            auto bounding_box = geom::bounding_box(model);
+            std::cout << bounding_box << "\n";
 
-            status = bounding_box.read(line.c_str());
-            if(status != RS274NGC_OK) {
-                if(status != RS274NGC_EXECUTE_FINISH) {
-                    std::cerr << "Error reading line!: \n";
-                    std::cout << line <<"\n";
-                    return status;
+        } else {
+            bool cut = vm.count("cut");
+            bool rapid = vm.count("rapid");
+            if(! (cut || rapid))
+                cut = true;
+            rs274_bounds bounding_box(cut, rapid);
+
+            std::string line;
+            while(std::getline(std::cin, line)) {
+                int status;
+
+                status = bounding_box.read(line.c_str());
+                if(status != RS274NGC_OK) {
+                    if(status != RS274NGC_EXECUTE_FINISH) {
+                        std::cerr << "Error reading line!: \n";
+                        std::cout << line <<"\n";
+                        return status;
+                    }
                 }
+                
+                status = bounding_box.execute();
+                if(status != RS274NGC_OK)
+                    return status;
             }
-            
-            status = bounding_box.execute();
-            if(status != RS274NGC_OK)
-                return status;
-        }
 
-        std::cout << bounding_box.bounding_box() << "\n";
+            std::cout << bounding_box.bounding_box() << "\n";
+        }
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";
