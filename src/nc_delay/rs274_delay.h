@@ -24,7 +24,7 @@
 
 #ifndef RS274_DELAY_H_
 #define RS274_DELAY_H_
-#include "nc_base/rs274_base.h"
+#include "base/rs274_base.h"
 
 class rs274_delay : public rs274_base
 {

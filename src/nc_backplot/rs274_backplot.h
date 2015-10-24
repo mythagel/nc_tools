@@ -24,7 +24,7 @@
 
 #ifndef RS274_BACKPLOT_H_
 #define RS274_BACKPLOT_H_
-#include "nc_base/rs274_base.h"
+#include "base/rs274_base.h"
 #include <osg/Geode>
 #include "Position.h"
 

@@ -27,7 +27,7 @@
 #include "rs274ngc.hh"
 #include "Position.h"
 #include "Math.h"
-#include "nc_lua/state.h"
+#include "lua/state.h"
 #include <string>
 
 class rs274_base : public rs274ngc
