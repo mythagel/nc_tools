@@ -7,9 +7,6 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <sstream>
-#include <iomanip>
-#include <lua.hpp>
 
 namespace po = boost::program_options;
 
@@ -51,7 +48,7 @@ int main(int argc, char* argv[]) {
             if(status != RS274NGC_OK)
                 return status;
 
-            std::cout << line <<"\n";
+            std::cout << line << "\n";
         }
 
     } catch(const po::error& e) {

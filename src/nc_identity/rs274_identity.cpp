@@ -23,11 +23,19 @@
  */
 
 #include "rs274_identity.h"
-#include <cmath>
-#include <cstring>
-#include "throw_if.h"
-#include "fold_adjacent.h"
-#include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <sstream>
+
+std::string r6(double v) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << v;
+    auto s = ss.str();
+    
+    s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+    if(s.back() == '.') s.pop_back();
+    return s;
+}
 
 void rs274_identity::_rapid(const Position&) {
 }
