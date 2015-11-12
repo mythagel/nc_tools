@@ -27,6 +27,8 @@
     * nc_transform -a 45 -b 45 -x -30 # rotate 45 deg around x, 45 around y, translate -30 on x
  * nc_tooltable
     * generate linuxcnc tool table from nc_tools.conf
+ * nc_offset_rotational_origin
+    * translate to/from tool local (canonical) rotations to world rotation (e.g. rotary tables)
 
 Generators
  * lathe_path
