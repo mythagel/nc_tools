@@ -25,16 +25,16 @@
  * nc_transform
     * transform / rotate stock for next operation
     * nc_transform -a 45 -b 45 -x -30 # rotate 45 deg around x, 45 around y, translate -30 on x
- * nc_tooltable
+ * ~~nc_tooltable~~
     * generate linuxcnc tool table from nc_tools.conf
- * nc_offset_rotational_origin
+ * ~~nc_offset_rotational_origin~~
     * translate to/from tool local (canonical) rotations to world rotation (e.g. rotary tables)
 
 Generators
- * lathe_path
+ * ~~lathe_path~~
     * generate lathe operations for svg path
     * TODO determine machining strategy for lathe operations based on different tools and back faces
- * mill_path
+ * ~~mill_path~~
     * generate profile operation for svg path
     * pick from SVG file with xpath pattern
     * opt. scale / transform
