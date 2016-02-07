@@ -29,6 +29,7 @@
 #include <osg/Geometry>
 
 void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool cut) {
+    using cxxcam::units::length_mm;
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
@@ -36,7 +37,7 @@ void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& step
     for(auto& step : steps)
     {
         auto& p = step.position;
-        vertices->push_back({static_cast<float>(p.x.value()), static_cast<float>(p.y.value()), static_cast<float>(p.z.value())});
+        vertices->push_back({static_cast<float>(length_mm{p.x}.value()), static_cast<float>(length_mm{p.y}.value()), static_cast<float>(length_mm{p.z}.value())});
     }
     geom->setVertexArray(vertices);
 
