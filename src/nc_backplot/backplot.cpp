@@ -4,13 +4,23 @@
 #include <osgGA/TrackballManipulator>
 #include <osgGA/StateSetManipulator>
 
+#include "geom/polyhedron.h"
+#include "geom/io.h"
+#include "throw_if.h"
+
 #include "rs274_backplot.h"
 #include "rs274ngc_return.hh"
 
+#include <boost/program_options.hpp>
+#include "print_exception.h"
+
 #include <iostream>
+#include <fstream>
 #include <thread>
 #include <atomic>
 #include <mutex>
+
+namespace po = boost::program_options;
 
 int convert(sf::Keyboard::Key k) {
     using namespace osgGA;
@@ -191,132 +201,199 @@ int convert(sf::Keyboard::Key k) {
     return -1;
 }
 
-int main() {
-    sf::VideoMode mode = sf::VideoMode::getDesktopMode();
-    mode.width = 800;
-    mode.height = 600;
+void pushModel(osg::Geode* geode, const geom::polyhedron_t& model) {
+    auto object = to_object(model);
 
-    sf::Window window(mode, "Backplot");
-    window.setVerticalSyncEnabled(true);
+    auto geom = new osg::Geometry();
 
-//    osg::setNotifyLevel(osg::DEBUG_INFO);
-
-    osgViewer::Viewer viewer;
-    sf::Vector2u size = window.getSize();
-    auto gw = viewer.setUpViewerAsEmbeddedInWindow(0, 0, size.x, size.y);
-
-    viewer.setCameraManipulator(new osgGA::TrackballManipulator);
-    viewer.getCameraManipulator()->setHomePosition({0, 0, 1}, {0,0,0}, {0,0,1}, false);
-    osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
-    viewer.addEventHandler(statesetManipulator.get());
-
-    auto geode = new osg::Geode();
-    viewer.setSceneData(geode);
-
-    viewer.realize();
-
-    rs274_backplot backplotter{geode};
-
-    auto adapt = [gw](const sf::Event& event) {
-        auto eq = gw->getEventQueue();
-        switch(event.type) {
-            case sf::Event::Resized:
-                eq->windowResize(0, 0, event.size.width, event.size.height);
-                break;
-            case sf::Event::MouseWheelMoved:
-                eq->mouseWarped(event.mouseWheel.x, event.mouseWheel.y);
-                eq->mouseScroll(event.mouseWheel.delta > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN);
-                break;
-            case sf::Event::MouseMoved:
-                eq->mouseMotion(event.mouseMove.x, event.mouseMove.y);
-                break;
-            case sf::Event::MouseButtonPressed:
-                if (event.mouseButton.button == sf::Mouse::Left)
-                    eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 1);
-                if (event.mouseButton.button == sf::Mouse::Right)
-                    eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 3);
-                if (event.mouseButton.button == sf::Mouse::Middle)
-                    eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 2);
-                break;
-            case sf::Event::MouseButtonReleased:
-                if (event.mouseButton.button == sf::Mouse::Left)
-                    eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 1);
-                if (event.mouseButton.button == sf::Mouse::Right)
-                    eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 3);
-                if (event.mouseButton.button == sf::Mouse::Middle)
-                    eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 2);
-                break;
-            case sf::Event::KeyPressed: {
-                auto key = convert(event.key.code);
-                if(key != -1)
-                    eq->keyPress(key, event.key.code);
-                break;
-            }
-            case sf::Event::KeyReleased: {
-                auto key = convert(event.key.code);
-                if(key != -1)
-                    eq->keyPress(key, event.key.code);
-                break;
-            }
-            default:
-                break;
+    auto vertices = new osg::Vec3Array;
+    auto normals = new osg::Vec3Array;
+    vertices->reserve(object.vertices.size() * 3);
+    normals->reserve(object.faces.size());
+    for(auto& face : object.faces) {
+        for(auto& vi : face.vertices) {
+            auto& v = object.vertices[vi];
+            vertices->push_back({static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z)});
         }
-    };
+        normals->push_back({static_cast<float>(face.normal.x), static_cast<float>(face.normal.y), static_cast<float>(face.normal.z)});
+    }
+    geom->setVertexArray(vertices);
+    geom->setNormalArray(normals, osg::Array::BIND_PER_PRIMITIVE_SET);
 
-    std::atomic<bool> running{true};
-    std::mutex draw_mt;
+    auto colors = new osg::Vec4Array;
+    colors->push_back({0.3f,0.3f,0.3f,0.8f});
+    geom->setColorArray(colors, osg::Array::BIND_OVERALL);
 
-    std::thread rs274_thread([&] {
+    geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, vertices->size()));
 
-        std::string line;
-        while(running && std::getline(std::cin, line)) {
-            int status;
-            
-            status = backplotter.read(line.c_str());
-            if(status != RS274NGC_OK) {
-                if(status != RS274NGC_EXECUTE_FINISH) {
-                    std::cerr << "Error reading line!: \n";
-                    std::cerr << line <<"\n";
-                    return status;
-                }
-            }
-            
-            status = backplotter.execute();
-            if(status != RS274NGC_OK)
-                return status;
-            std::cerr << line << "\n";
+    geode->addDrawable(geom);
+}
+
+int main(int argc, char* argv[]) {
+    po::options_description options("nc_model");
+    std::vector<std::string> args(argv, argv + argc);
+    args.erase(begin(args));
+
+    options.add_options()
+        ("help,h", "display this help and exit")
+        ("model", po::value<std::string>(), "Model file")
+    ;
+
+    try {
+        po::variables_map vm;
+        store(po::command_line_parser(args).options(options).run(), vm);
+
+        if(vm.count("help")) {
+            std::cout << options << "\n";
+            return 0;
         }
-        return 0;
-    });
+        notify(vm);
 
-    while(running) {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            adapt(event);
+        sf::VideoMode mode = sf::VideoMode::getDesktopMode();
+        mode.width = 800;
+        mode.height = 600;
+
+        sf::Window window(mode, "Backplot");
+        window.setVerticalSyncEnabled(true);
+
+    //    osg::setNotifyLevel(osg::DEBUG_INFO);
+
+        osgViewer::Viewer viewer;
+        sf::Vector2u size = window.getSize();
+        auto gw = viewer.setUpViewerAsEmbeddedInWindow(0, 0, size.x, size.y);
+
+        viewer.setCameraManipulator(new osgGA::TrackballManipulator);
+        viewer.getCameraManipulator()->setHomePosition({0, 0, 100}, {0,0,0}, {0,0,1}, false);
+        osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
+        viewer.addEventHandler(statesetManipulator.get());
+
+        auto geode = new osg::Geode();
+        viewer.setSceneData(geode);
+
+        viewer.realize();
+
+        std::thread model_thread([&]{
+            if(vm.count("model")) {
+                geom::polyhedron_t model;
+                std::ifstream is(vm["model"].as<std::string>());
+                throw_if(!(is >> geom::format::off >> model), "Unable to read model from file");
+
+                pushModel(geode, model);
+            }
+        });
+
+        rs274_backplot backplotter{geode};
+
+        auto adapt = [gw](const sf::Event& event) {
+            auto eq = gw->getEventQueue();
             switch(event.type) {
-                case sf::Event::Closed:
-                    running = false;
-                    break;
                 case sf::Event::Resized:
-                    gw->resized(0, 0, event.size.width, event.size.height);
+                    eq->windowResize(0, 0, event.size.width, event.size.height);
                     break;
-                case sf::Event::KeyPressed:
-                    if(event.key.code == sf::Keyboard::Escape)
-                        running = false;
+                case sf::Event::MouseWheelMoved:
+                    eq->mouseWarped(event.mouseWheel.x, event.mouseWheel.y);
+                    eq->mouseScroll(event.mouseWheel.delta > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN);
                     break;
+                case sf::Event::MouseMoved:
+                    eq->mouseMotion(event.mouseMove.x, event.mouseMove.y);
+                    break;
+                case sf::Event::MouseButtonPressed:
+                    if (event.mouseButton.button == sf::Mouse::Left)
+                        eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 1);
+                    if (event.mouseButton.button == sf::Mouse::Right)
+                        eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 3);
+                    if (event.mouseButton.button == sf::Mouse::Middle)
+                        eq->mouseButtonPress(event.mouseButton.x, event.mouseButton.y, 2);
+                    break;
+                case sf::Event::MouseButtonReleased:
+                    if (event.mouseButton.button == sf::Mouse::Left)
+                        eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 1);
+                    if (event.mouseButton.button == sf::Mouse::Right)
+                        eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 3);
+                    if (event.mouseButton.button == sf::Mouse::Middle)
+                        eq->mouseButtonRelease(event.mouseButton.x, event.mouseButton.y, 2);
+                    break;
+                case sf::Event::KeyPressed: {
+                    auto key = convert(event.key.code);
+                    if(key != -1)
+                        eq->keyPress(key, event.key.code);
+                    break;
+                }
+                case sf::Event::KeyReleased: {
+                    auto key = convert(event.key.code);
+                    if(key != -1)
+                        eq->keyPress(key, event.key.code);
+                    break;
+                }
                 default:
                     break;
             }
+        };
+
+        std::atomic<bool> running{true};
+        std::mutex draw_mt;
+
+        std::thread rs274_thread([&] {
+
+            std::string line;
+            while(running && std::getline(std::cin, line)) {
+                int status;
+                
+                status = backplotter.read(line.c_str());
+                if(status != RS274NGC_OK) {
+                    if(status != RS274NGC_EXECUTE_FINISH) {
+                        std::cerr << "Error reading line!: \n";
+                        std::cerr << line <<"\n";
+                        return status;
+                    }
+                }
+                
+                status = backplotter.execute();
+                if(status != RS274NGC_OK)
+                    return status;
+                std::cerr << line << "\n";
+            }
+            return 0;
+        });
+
+        while(running) {
+            sf::Event event;
+            while (window.pollEvent(event)) {
+                adapt(event);
+                switch(event.type) {
+                    case sf::Event::Closed:
+                        running = false;
+                        break;
+                    case sf::Event::Resized:
+                        gw->resized(0, 0, event.size.width, event.size.height);
+                        break;
+                    case sf::Event::KeyPressed:
+                        if(event.key.code == sf::Keyboard::Escape)
+                            running = false;
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(draw_mt);
+                viewer.frame();
+                window.display();
+            }
         }
 
-        {
-            std::lock_guard<std::mutex> lock(draw_mt);
-            viewer.frame();
-            window.display();
-        }
+        model_thread.join();
+        rs274_thread.join();
+
+    } catch(const po::error& e) {
+        print_exception(e);
+        std::cout << options << "\n";
+        return 1;
+    } catch(const std::exception& e) {
+        print_exception(e);
+        return 1;
     }
-
-    rs274_thread.join();
 
     return 0;
 }
