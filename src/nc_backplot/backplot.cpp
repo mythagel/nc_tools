@@ -201,9 +201,7 @@ int convert(sf::Keyboard::Key k) {
     return -1;
 }
 
-void pushModel(osg::Geode* geode, const geom::polyhedron_t& model) {
-    auto object = to_object(model);
-
+void pushModel(osg::Geode* geode, const geom::object_t& object) {
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
@@ -274,9 +272,9 @@ int main(int argc, char* argv[]) {
 
         std::thread model_thread([&]{
             if(vm.count("model")) {
-                geom::polyhedron_t model;
+                geom::object_t model;
                 std::ifstream is(vm["model"].as<std::string>());
-                throw_if(!(is >> geom::format::off >> model), "Unable to read model from file");
+                throw_if(!(is >> model), "Unable to read model from file");
 
                 pushModel(geode, model);
             }
