@@ -3,6 +3,7 @@
 #include <osgViewer/Viewer>
 #include <osgGA/TrackballManipulator>
 #include <osgGA/StateSetManipulator>
+#include <osg/Material>
 
 #include "geom/polyhedron.h"
 #include "geom/io.h"
@@ -201,30 +202,44 @@ int convert(sf::Keyboard::Key k) {
     return -1;
 }
 
-void pushModel(osg::Geode* geode, const geom::object_t& object) {
+void pushModel(osg::Group* parent, const geom::object_t& object) {
+    auto modelGeode = new osg::Geode();
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
-    auto normals = new osg::Vec3Array;
+    //auto normals = new osg::Vec3Array;
     vertices->reserve(object.vertices.size() * 3);
-    normals->reserve(object.faces.size());
+    //normals->reserve(object.faces.size());
     for(auto& face : object.faces) {
         for(auto& vi : face.vertices) {
             auto& v = object.vertices[vi];
             vertices->push_back({static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z)});
         }
-        normals->push_back({static_cast<float>(face.normal.x), static_cast<float>(face.normal.y), static_cast<float>(face.normal.z)});
+        //normals->push_back({static_cast<float>(face.normal.x), static_cast<float>(face.normal.y), static_cast<float>(face.normal.z)});
     }
     geom->setVertexArray(vertices);
-    geom->setNormalArray(normals, osg::Array::BIND_PER_PRIMITIVE_SET);
+    //geom->setNormalArray(normals, osg::Array::BIND_PER_VERTEX);
 
     auto colors = new osg::Vec4Array;
-    colors->push_back({0.3f,0.3f,0.3f,0.8f});
+    colors->push_back({0.3f,0.3f,0.3f,0.2f});
     geom->setColorArray(colors, osg::Array::BIND_OVERALL);
 
     geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, vertices->size()));
 
-    geode->addDrawable(geom);
+    modelGeode->addDrawable(geom);
+
+    auto stateset = modelGeode->getOrCreateStateSet();
+    auto mm = dynamic_cast<osg::Material*>(stateset->getAttribute(osg::StateAttribute::MATERIAL));
+    if (!mm) mm = new osg::Material;
+
+    mm->setAlpha(osg::Material::FRONT, 0.2f);
+
+    stateset->setAttributeAndModes(mm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
+    stateset->setMode(GL_BLEND, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON );
+    stateset->setMode(GL_LIGHTING, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON );
+    stateset->setRenderingHint(osg::StateSet::TRANSPARENT_BIN);
+
+    parent->addChild(modelGeode);
 }
 
 int main(int argc, char* argv[]) {
@@ -265,8 +280,8 @@ int main(int argc, char* argv[]) {
         osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
         viewer.addEventHandler(statesetManipulator.get());
 
-        auto geode = new osg::Geode();
-        viewer.setSceneData(geode);
+        auto root = new osg::Group();
+        viewer.setSceneData(root);
 
         viewer.realize();
 
@@ -276,11 +291,11 @@ int main(int argc, char* argv[]) {
                 std::ifstream is(vm["model"].as<std::string>());
                 throw_if(!(is >> model), "Unable to read model from file");
 
-                pushModel(geode, model);
+                pushModel(root, model);
             }
         });
 
-        rs274_backplot backplotter{geode};
+        rs274_backplot backplotter{root};
 
         auto adapt = [gw](const sf::Event& event) {
             auto eq = gw->getEventQueue();

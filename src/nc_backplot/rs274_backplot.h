@@ -38,7 +38,7 @@ private:
     virtual void _linear(const Position& pos);
 
 public:
-	rs274_backplot(osg::Geode* geode);
+	rs274_backplot(osg::Group* parent);
 	virtual ~rs274_backplot() = default;
 };
 
