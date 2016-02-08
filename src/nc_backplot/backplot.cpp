@@ -207,24 +207,26 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     auto geom = new osg::Geometry();
 
     auto vertices = new osg::Vec3Array;
-    //auto normals = new osg::Vec3Array;
+    auto normals = new osg::Vec3Array;
     vertices->reserve(object.vertices.size() * 3);
-    //normals->reserve(object.faces.size());
+    normals->reserve(object.faces.size());
+    unsigned index = 0;
     for(auto& face : object.faces) {
         for(auto& vi : face.vertices) {
             auto& v = object.vertices[vi];
             vertices->push_back({static_cast<float>(v.x), static_cast<float>(v.y), static_cast<float>(v.z)});
         }
-        //normals->push_back({static_cast<float>(face.normal.x), static_cast<float>(face.normal.y), static_cast<float>(face.normal.z)});
+        normals->push_back({static_cast<float>(face.normal.x), static_cast<float>(face.normal.y), static_cast<float>(face.normal.z)});
+
+        geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::POLYGON, index, face.vertices.size()));
+        index += face.vertices.size();
     }
     geom->setVertexArray(vertices);
-    //geom->setNormalArray(normals, osg::Array::BIND_PER_VERTEX);
+    geom->setNormalArray(normals, osg::Array::BIND_PER_PRIMITIVE_SET);
 
     auto colors = new osg::Vec4Array;
-    colors->push_back({0.3f,0.3f,0.3f,0.2f});
+    colors->push_back({0.3f,0.9f,0.3f,0.2f});
     geom->setColorArray(colors, osg::Array::BIND_OVERALL);
-
-    geom->addPrimitiveSet(new osg::DrawArrays(osg::PrimitiveSet::TRIANGLES, 0, vertices->size()));
 
     modelGeode->addDrawable(geom);
 
@@ -232,7 +234,7 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     auto mm = dynamic_cast<osg::Material*>(stateset->getAttribute(osg::StateAttribute::MATERIAL));
     if (!mm) mm = new osg::Material;
 
-    mm->setAlpha(osg::Material::FRONT, 0.2f);
+    mm->setAlpha(osg::Material::FRONT_AND_BACK, 0.2f);
 
     stateset->setAttributeAndModes(mm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
     stateset->setMode(GL_BLEND, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON );
