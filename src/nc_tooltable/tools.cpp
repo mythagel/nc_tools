@@ -6,6 +6,11 @@
 #include <string>
 #include <lua.hpp>
 
+#include "GCodeLine.h"
+#include <algorithm>
+#include <iterator>
+#include "base/nc_config.h"
+
 namespace po = boost::program_options;
 
 int main(int argc, char* argv[]) {
@@ -39,6 +44,20 @@ int main(int argc, char* argv[]) {
  * J - back angle (lathe only) - floating-point 
  * Q - tool orientation (lathe only) - integer, 0-9 
  * ; - beginning of comment or remark - text */
+        {
+            using namespace cxxcam::gcode;
+            Line line;
+            line += {Word::T, 4};
+            line += {Word::P, 4};
+            line += {Word::D, 4};
+            line.Comment("tool name");
+
+            std::copy(line.begin(), line.end(), std::ostream_iterator<Word>(std::cout, " "));
+            if(!line.Comment().empty())
+                std::cout << "; " << line.Comment();
+            std::cout << "\n";
+
+        }
 
     } catch(const po::error& e) {
         print_exception(e);
