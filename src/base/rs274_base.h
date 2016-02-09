@@ -29,6 +29,7 @@
 #include "Math.h"
 #include "lua/state.h"
 #include <string>
+#include "nc_config.h"
 
 class rs274_base : public rs274ngc
 {
@@ -39,7 +40,7 @@ private:
 	virtual void interp_init();
 
 protected:
-    mutable lua::state L;
+    mutable nc_config config;
 
 	Plane       _active_plane = Plane::XY;
 	int               _active_slot = 1;

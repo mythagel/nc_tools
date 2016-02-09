@@ -26,46 +26,10 @@
 #include <cmath>
 #include <cstring>
 #include <lua.hpp>
-#include <stdexcept>
-#include <iostream>
-#include <boost/filesystem.hpp>
-
-namespace fs = boost::filesystem;
-
-namespace {
-
-std::string find_config_file(const std::string& conf) {
-    if(!conf.empty())
-        return conf;
-
-    /* Search cwd then parents for nc_tools.conf */
-    auto cwd = fs::current_path();
-    while(!cwd.empty()) {
-        auto candidate = cwd / "nc_tools.conf";
-        if(exists(candidate))
-            return candidate.native();
-        cwd = cwd.parent_path();
-    }
-    return {};
-}
-
-}
 
 rs274_base::rs274_base(const std::string& conf)
+ : config(conf)
 {
-    auto config = find_config_file(conf);
-    try {
-        if(!config.empty() && luaL_dofile(L, config.c_str())) {
-            std::string ex = lua_tostring(L, -1);
-            lua_pop(L, 1);
-            throw std::runtime_error(ex);
-        }
-    } catch(const std::exception& ex) {
-        if(!conf.empty())
-            throw;
-        std::cerr << ex.what() << "\n";
-    }
-
 	init();
 }
 rs274_base::~rs274_base()
@@ -484,6 +448,8 @@ unsigned int rs274_base::tool_max() const
 }
 Tool rs274_base::tool(int pocket) const
 {
+    auto& L = config.state();
+
     lua_getglobal(L, "tool_table");
     if (!lua_istable(L, -1)) {
         lua_pop(L, 1);

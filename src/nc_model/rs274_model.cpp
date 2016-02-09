@@ -88,6 +88,8 @@ void rs274_model::_linear(const Position& pos) {
 /* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
  * */
 void rs274_model::tool_change(int slot) {
+    auto& L = config.state();
+
     lua_getglobal(L, "tool_table");
     if (!lua_istable(L, -1)) {
         lua_pop(L, 1);
