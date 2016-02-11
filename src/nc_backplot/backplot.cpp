@@ -4,6 +4,7 @@
 #include <osgGA/TrackballManipulator>
 #include <osgGA/StateSetManipulator>
 #include <osg/Material>
+#include <osgUtil/SmoothingVisitor>
 
 #include "geom/polyhedron.h"
 #include "geom/io.h"
@@ -225,8 +226,10 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     geom->setNormalArray(normals, osg::Array::BIND_PER_PRIMITIVE_SET);
 
     auto colors = new osg::Vec4Array;
-    colors->push_back({0.3f,0.9f,0.3f,0.2f});
+    colors->push_back({0.0f,0.9f,0.0f,0.2f});
     geom->setColorArray(colors, osg::Array::BIND_OVERALL);
+
+    osgUtil::SmoothingVisitor::smooth(*geom);
 
     modelGeode->addDrawable(geom);
 
@@ -235,6 +238,7 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     if (!mm) mm = new osg::Material;
 
     mm->setAlpha(osg::Material::FRONT_AND_BACK, 0.2f);
+    mm->setColorMode(osg::Material::DIFFUSE);
 
     stateset->setAttributeAndModes(mm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
     stateset->setMode(GL_BLEND, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON );
