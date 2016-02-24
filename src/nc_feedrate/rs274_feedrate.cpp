@@ -85,7 +85,6 @@ double chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, con
     auto to_quat = [&](math::vector_3 v0, math::vector_3 v1) -> math::quaternion_t {
         auto vec = normalise(cross(v0, v1));
         vec.a = acos(dot(v0, v1)) * 57.2958;
-    std::cout << "vect " << vec << "\n";
         return axis2quat(vec);
     };
 
@@ -113,11 +112,13 @@ double chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, con
     deorient /= o0;
 
     auto dir = math::vector_3{length_mm(p1.x - p0.x).value(), length_mm(p1.y - p0.y).value(), length_mm(p1.z - p0.z).value()};
+    // ignore z component of direction
+    dir.z = 0;
     auto reorient = identity;
     reorient /= to_quat(normalise(dir), {1, 0, 0});
 
-    mat = rotate(mat, deorient.R_component_1(), deorient.R_component_2(), deorient.R_component_3(), deorient.R_component_4());
     mat = translate(mat, length_mm(-p0.x).value(), length_mm(-p0.y).value(), length_mm(-p0.z).value());
+    mat = rotate(mat, deorient.R_component_1(), deorient.R_component_2(), deorient.R_component_3(), deorient.R_component_4());
     mat = rotate(mat, reorient.R_component_1(), reorient.R_component_2(), reorient.R_component_3(), reorient.R_component_4());
     // TODO reorient / translate before bbox
     auto bbox = bounding_box(mat);
