@@ -49,7 +49,6 @@ std::string r6(double v) {
     if(s.back() == '.') s.pop_back();
     return s;
 }
-
 std::ostream& operator<<(std::ostream& os, const geom::query::bbox_3& b) {
     os << "min: {" << r6(b.min.x) << ", " << r6(b.min.y) << ", " << r6(b.min.z) <<"} max: {" << r6(b.max.x) << ", " << r6(b.max.y) << ", " << r6(b.max.z) <<"}";
     return os;
@@ -106,6 +105,9 @@ double chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, con
         * bbox width on y axis is width of cut
         * */
     auto tool_path = simulation::sweep_tool(tool, s0, s1);
+    if(!intersects(tool_path, model))
+        return 0.0;
+
     auto mat = model * tool_path;
     model -= tool_path;
     auto deorient = identity;
@@ -120,9 +122,10 @@ double chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, con
     mat = translate(mat, length_mm(-p0.x).value(), length_mm(-p0.y).value(), length_mm(-p0.z).value());
     mat = rotate(mat, deorient.R_component_1(), deorient.R_component_2(), deorient.R_component_3(), deorient.R_component_4());
     mat = rotate(mat, reorient.R_component_1(), reorient.R_component_2(), reorient.R_component_3(), reorient.R_component_4());
-    // TODO reorient / translate before bbox
+
     auto bbox = bounding_box(mat);
-    std::cerr << bbox << "\n";
+    std::cerr << bbox << " len: " << length_mm(length) << "\n";
+    if(true) // testing
     {
         static int i = 0;
         std::stringstream s;
@@ -144,8 +147,8 @@ void rs274_feedrate::_arc(const Position& end, const Position& center, const cxx
 		{
             return chip_load(s0, s1, _tool, _model);
 		});
-    for(auto& clpt : chip_load_per_tooth) {
-    }
+    //for(auto& clpt : chip_load_per_tooth) {
+    //}
     // TODO analyse each toolpath step to determine appropriate feed rate
 }
 
