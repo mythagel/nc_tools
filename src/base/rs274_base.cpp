@@ -484,3 +484,7 @@ double rs274_base::rapid_rate() const
     return _traverse_rate;
 }
 
+void rs274_base::block_end()
+{
+}
+
