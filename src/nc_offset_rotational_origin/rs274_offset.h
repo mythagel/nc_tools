@@ -35,16 +35,35 @@
  *
  * initially enforce AXBYCZ
  * */
+
+struct rotational_origin
+{
+    bool tool;
+    double x;
+    double y;
+    double z;
+
+    rotational_origin()
+     : tool(true)
+    {}
+    rotational_origin(double x, double y, double z)
+     : tool(false), x(x), y(y), z(z)
+    {}
+};
+
 class rs274_offset : public rs274_base
 {
 private:
+    rotational_origin from_;
+    rotational_origin to_;
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
+    virtual void block_end();
 
 public:
-	rs274_offset();
+	rs274_offset(const rotational_origin& from, const rotational_origin& to);
 
 	virtual ~rs274_offset() = default;
 };

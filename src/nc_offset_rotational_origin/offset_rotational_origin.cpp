@@ -17,6 +17,14 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
+        ("from-tool,t", "From - Tool zero as rotational origin")
+        ("from-x,x", po::value<double>(), "From - X axis rotational origin")
+        ("from-y,y", po::value<double>(), "From - Y axis rotational origin")
+        ("from-z,z", po::value<double>(), "From - Z axis rotational origin")
+        ("to-tool,T", "To - Tool zero as rotational origin")
+        ("to-x,X", po::value<double>(), "To - X axis rotational origin")
+        ("to-y,Y", po::value<double>(), "To - Y axis rotational origin")
+        ("to-z,Z", po::value<double>(), "To - Z axis rotational origin")
     ;
 
     try {
@@ -29,7 +37,21 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_offset offset;
+        rotational_origin from;
+        rotational_origin to;
+
+        if(vm.count("from-tool"))
+            from = {};
+        else
+            from = { vm["from-x"].as<double>(), vm["from-y"].as<double>(), vm["from-z"].as<double>() };
+
+        if(vm.count("to-tool"))
+            from = rotational_origin();
+        else
+            from = { vm["to-x"].as<double>(), vm["to-y"].as<double>(), vm["to-z"].as<double>() };
+
+
+        rs274_offset offset(from, to);
 
         std::string line;
         while(std::getline(std::cin, line)) {
@@ -39,7 +61,6 @@ int main(int argc, char* argv[]) {
             if(status != RS274NGC_OK) {
                 if(status != RS274NGC_EXECUTE_FINISH) {
                     std::cerr << "Error reading line!: \n";
-                    std::cout << line <<"\n";
                     return status;
                 }
             }

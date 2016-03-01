@@ -38,14 +38,6 @@ std::string r6(double v) {
 }
 
 void rs274_offset::_rapid(const Position& pos) {
-    std::cout << "G00";
-    std::cout << " X" << pos.x;
-    std::cout << " Y" << pos.y;
-    std::cout << " Z" << pos.z;
-    std::cout << " A" << pos.a;
-    std::cout << " B" << pos.b;
-    std::cout << " C" << pos.c;
-    std::cout << "\n";
 }
 
 void rs274_offset::_arc(const Position&, const Position&, const cxxcam::math::vector_3&, int) {
@@ -55,7 +47,13 @@ void rs274_offset::_arc(const Position&, const Position&, const cxxcam::math::ve
 void rs274_offset::_linear(const Position&) {
 }
 
-rs274_offset::rs274_offset()
- : rs274_base() {
+void rs274_offset::block_end() {
+    char line[256];
+    line_text(line, 256);
+    std::cout << line << "\n";
+}
+
+rs274_offset::rs274_offset(const rotational_origin& from, const rotational_origin& to)
+ : rs274_base(), from_(from), to_(to) {
 }
 
