@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2013  Nicholas Gill
+ * Copyright (C) 2016  Nicholas Gill
  * 
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,28 +16,26 @@
  */
 
 /*
- * rs274_identity.cpp
+ * r6.h
  *
- *  Created on: 2015-11-12
+ *  Created on: 2016-03-04
  *      Author: nicholas
  */
 
-#include "rs274_identity.h"
-#include <iostream>
+#ifndef R6_H_
+#define R6_H_
+#include <sstream>
+#include <iomanip>
+#include <string>
 
-#include "../r6.h"
-
-void rs274_identity::_rapid(const Position&) {
+inline std::string r6(double v) {
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(6) << v;
+    auto s = ss.str();
+    
+    s.erase(s.find_last_not_of('0') + 1, std::string::npos);
+    if(s.back() == '.') s.pop_back();
+    return s;
 }
 
-void rs274_identity::_arc(const Position&, const Position&, const cxxcam::math::vector_3&, int) {
-}
-
-
-void rs274_identity::_linear(const Position&) {
-}
-
-rs274_identity::rs274_identity()
- : rs274_base() {
-}
-
+#endif /* R6_H_ */

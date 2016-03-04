@@ -5,25 +5,14 @@
 #include "geom/polyhedron.h"
 #include "geom/query.h"
 #include "../throw_if.h"
+#include "../r6.h"
 
 #include <iostream>
 #include <vector>
 #include <string>
-#include <sstream>
-#include <iomanip>
 #include <lua.hpp>
 
 namespace po = boost::program_options;
-
-std::string r6(double v) {
-    std::ostringstream ss;
-    ss << std::fixed << std::setprecision(6) << v;
-    auto s = ss.str();
-    
-    s.erase(s.find_last_not_of('0') + 1, std::string::npos);
-    if(s.back() == '.') s.pop_back();
-    return s;
-}
 
 std::ostream& operator<<(std::ostream& os, const geom::query::bbox_3& b) {
     os << "min: {" << r6(b.min.x) << ", " << r6(b.min.y) << ", " << r6(b.min.z) <<"} max: {" << r6(b.max.x) << ", " << r6(b.max.y) << ", " << r6(b.max.z) <<"}";
