@@ -60,7 +60,7 @@ private:
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
-    virtual void block_end();
+    virtual void block_end(const block_t& block);
 
 public:
 	rs274_offset(const rotational_origin& from, const rotational_origin& to);

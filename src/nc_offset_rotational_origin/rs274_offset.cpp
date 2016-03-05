@@ -47,7 +47,7 @@ void rs274_offset::_arc(const Position&, const Position&, const cxxcam::math::ve
 void rs274_offset::_linear(const Position&) {
 }
 
-void rs274_offset::block_end() {
+void rs274_offset::block_end(const block_t& block) {
     char line[256];
     line_text(line, 256);
     std::cout << line << "\n";

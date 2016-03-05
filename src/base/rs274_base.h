@@ -126,7 +126,7 @@ private:
 	virtual unsigned int tool_max() const;
 	virtual Tool tool(int pocket) const;
 	virtual double rapid_rate() const;
-    virtual void block_end();
+    virtual void block_end(const block_t& block);
 };
 
 #endif /* RS274_BASE_H_ */
