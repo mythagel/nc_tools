@@ -27,6 +27,9 @@ private:
 
     point_t pos;
     point_t subpath_start;
+
+    point_t curve_cp;
+    point_t bezier_cp;
 protected:
     virtual void move_to(bool abs, float x, float y) {
         pos.x = abs ? x : pos.x + x;
@@ -39,14 +42,17 @@ protected:
     virtual void line_to(bool abs, float x, float y) {
         pos.x = abs ? x : pos.x + x;
         pos.y = abs ? y : pos.y + y;
+        curve_cp = bezier_cp = pos;
         std::cout << "G01 X" << r6(pos.x) << " Y" << r6(pos.y) << " F" << r6(f) << "\n";
     }
     virtual void horizontal_line_to(bool abs, float x) {
         pos.x = abs ? x : pos.x + x;
+        curve_cp = bezier_cp = pos;
         std::cout << "G01 X" << r6(pos.x) << " F" << r6(f) << "\n";
     }
     virtual void vertical_line_to(bool abs, float y) {
         pos.y = abs ? y : pos.y + y;
+        curve_cp = bezier_cp = pos;
         std::cout << "G01 Y" << r6(pos.y) << " F" << r6(f) << "\n";
     }
 
@@ -56,7 +62,8 @@ protected:
         p[1] = {abs ? x1 : pos.x + x1, abs ? y1 : pos.y + y1};
         p[2] = {abs ? x2 : pos.x + x2, abs ? y2 : pos.y + y2};
         p[3] = {abs ? x : pos.x + x, abs ? y : pos.y + y};
-        pos = p[3];
+        pos = bezier_cp = p[3];
+        curve_cp = p[2];
 
         for(float t = 0.0; t < 1.0; t += 0.03) {
             auto ab = lerp(p[0], p[1], t);
@@ -69,6 +76,12 @@ protected:
         std::cout << "G01 X" << r6(pos.x) << " Y" << r6(pos.y) << " F" << r6(f) << "\n";
     }
     virtual void smooth_curve_to(bool abs, float x2, float y2, float x, float y) {
+        float x1 = pos.x + (pos.x - curve_cp.x);
+        float y1 = pos.y + (pos.y - curve_cp.y);
+        if (abs)
+            curve_to(true, x1, y1, x2, y2, x, y);
+        else
+            curve_to(true, x1, y1, pos.x+x2, pos.y+y2, pos.x+x, pos.y+y);
     }
 
     virtual void bezier_curve_to(bool abs, float x1, float y1, float x, float y) {
@@ -76,7 +89,8 @@ protected:
         p[0] = pos;
         p[1] = {abs ? x1 : pos.x + x1, abs ? y1 : pos.y + y1};
         p[2] = {abs ? x : pos.x + x, abs ? y : pos.y + y};
-        pos = p[2];
+        pos = curve_cp = p[2];
+        bezier_cp = p[1];
 
         for(float t = 0.0; t < 1.0; t += 0.03) {
             auto ab = lerp(p[0], p[1], t);
@@ -88,6 +102,12 @@ protected:
         std::cout << "G01 X" << r6(pos.x) << " Y" << r6(pos.y) << " F" << r6(f) << "\n";
     }
     virtual void smooth_bezier_curve_to(bool abs, float x, float y) {
+        float x1 = pos.x + (pos.x - bezier_cp.x);
+        float y1 = pos.y + (pos.y - bezier_cp.y);
+        if (abs)
+            bezier_curve_to(true, x1, y1, x, y);
+        else
+            bezier_curve_to(true, x1, y1, pos.x+x, pos.y+y);
     }
 
     virtual void close_path() {
@@ -95,6 +115,9 @@ protected:
         std::cout << "G01 X" << r6(pos.x) << " Y" << r6(pos.y) << " F" << r6(f) << "\n";
     }
     virtual void eof() {
+        pos = {};
+        subpath_start = {};
+        curve_cp = bezier_cp = {};
     }
 
 public:
