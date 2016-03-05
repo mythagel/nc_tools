@@ -65,6 +65,8 @@ protected:
         pos = bezier_cp = p[3];
         curve_cp = p[2];
 
+        /* TODO approximate arc length to calculate number of points to generate
+         * */
         for(float t = 0.0; t < 1.0; t += 0.03) {
             auto ab = lerp(p[0], p[1], t);
             auto bc = lerp(p[1], p[2], t);
@@ -92,6 +94,8 @@ protected:
         pos = curve_cp = p[2];
         bezier_cp = p[1];
 
+        /* TODO approximate arc length to calculate number of points to generate
+         * */
         for(float t = 0.0; t < 1.0; t += 0.03) {
             auto ab = lerp(p[0], p[1], t);
             auto bc = lerp(p[1], p[2], t);
