@@ -47,8 +47,6 @@ int main(int argc, char* argv[]) {
             status = identity.execute();
             if(status != RS274NGC_OK)
                 return status;
-
-            std::cout << line << "\n";
         }
 
     } catch(const po::error& e) {
