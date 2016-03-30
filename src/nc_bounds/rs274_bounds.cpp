@@ -28,6 +28,7 @@
 #include "throw_if.h"
 #include "fold_adjacent.h"
 #include <algorithm>
+#include "Path.h"
 
 cxxcam::math::point_3 pos2point(const cxxcam::Position& pos) {
     return {pos.X, pos.Y, pos.Z};
@@ -38,9 +39,14 @@ void rs274_bounds::_rapid(const Position& pos) {
         bbox += pos2point(convert(pos));
 }
 
-void rs274_bounds::_arc(const Position& end, const Position&, const cxxcam::math::vector_3&, int) {
-    if (track_cut)
-        bbox += pos2point(convert(end));
+void rs274_bounds::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
+    using namespace cxxcam::path;
+    if (track_cut) {
+        auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+
+        for (auto& step : steps)
+            bbox += step.position;
+    }
 }
 
 
