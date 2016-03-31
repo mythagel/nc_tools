@@ -29,13 +29,16 @@
 #include "../r6.h"
 
 void rs274_path::_rapid(const Position&) {
+    if (!path_.empty())
+        throw std::runtime_error("Rapid within profile disallowed");
 }
-void rs274_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
+void rs274_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3&, int) {
     // TODO handle plane
     arc_2 arc;
     arc.a = {program_pos.x, program_pos.y};
     arc.b = {end.x, end.y};
     arc.c = {center.x, center.y};
+    path_.push_back(arc);
 }
 
 
