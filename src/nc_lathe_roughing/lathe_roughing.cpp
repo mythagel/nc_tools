@@ -9,6 +9,9 @@
 #include <string>
 #include "geometry.h"
 
+#include "Bbox.h"
+#include "Units.h"
+
 namespace po = boost::program_options;
 
 class intersect_visitor : public boost::static_visitor<boost::optional<rs274_path::geometry>> {
@@ -40,6 +43,87 @@ std::vector<rs274_path::geometry> intersects(const std::vector<rs274_path::geome
     return intersections;
 }
 
+template <typename Fn>
+void arc_points(const arc_2& arc, Fn&& fn) {
+    auto r = std::abs(distance(arc.c, arc.a));
+    auto pi2 = 2.0 * 3.14159265359;
+    auto start_theta = theta(arc, arc.a);
+    auto end_theta = theta(arc, arc.b);
+    auto delta_theta = end_theta - start_theta;
+    switch(arc.dir) {
+        case arc_2::cw:
+            if (delta_theta > 0)
+                delta_theta -= pi2;
+            else if (delta_theta == 0)
+                delta_theta = -pi2;
+            break;
+        case arc_2::ccw:
+            if (delta_theta < 0)
+                delta_theta += pi2;
+            else if (delta_theta == 0)
+                delta_theta = pi2;
+            break;
+    }
+    unsigned total_steps = static_cast<unsigned>((128.0 / pi2) * std::abs(delta_theta));
+    auto t = start_theta;
+    auto dt = delta_theta / total_steps;
+    if (delta_theta < 0) dt = -dt;
+    for(size_t s = 0; s < total_steps; ++s, t += dt) {
+        point_2 p;
+        p.x = (std::cos(t) * r) + arc.c.x;
+        p.y = (std::sin(t) * r) + arc.c.y;
+
+        fn(p);
+    }
+}
+
+class bounding_box_visitor : public boost::static_visitor<void> {
+public:
+    cxxcam::Bbox bbox;
+    cxxcam::math::point_3 pos2point(const point_2& p) {
+        using namespace cxxcam::units;
+
+        cxxcam::math::point_3 cp;
+        cp.x = length{p.x * millimeters};
+        cp.y = length{p.y * millimeters};
+        return cp;
+    }
+
+    void operator()(const line_segment_2& line) {
+        bbox += pos2point(line.a);
+        bbox += pos2point(line.b);
+    }
+    void operator()(const arc_2& arc) {
+        arc_points(arc, [&](const point_2& p) {
+            bbox += pos2point(p);
+        });
+    }
+};
+
+class monotonic_visitor : public boost::static_visitor<void> {
+public:
+    bool monotonic_x = true;
+    bool monotonic_y = true;
+    point_2 p = {0, 0};
+
+    void operator()(const line_segment_2& line) {
+        if(line.a.x < p.x) monotonic_x = false;
+        if(line.a.y < p.y) monotonic_y = false;
+        p = line.a;
+
+        if(line.b.x < p.x) monotonic_x = false;
+        if(line.b.y < p.y) monotonic_y = false;
+        p = line.b;
+    }
+    void operator()(const arc_2& arc) {
+        arc_points(arc, [&](const point_2& ap) {
+            if(ap.x < p.x) monotonic_x = false;
+            if(ap.y < p.y) monotonic_y = false;
+            p = ap;
+        });
+    }
+};
+
 int main(int argc, char* argv[]) {
     po::options_description options("nc_lathe_roughing");
     std::vector<std::string> args(argv, argv + argc);
@@ -47,6 +131,9 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
+        ("stepdown,D", po::value<double>()->required(), "roughing stepdown")
+        ("retract,R", po::value<double>()->default_value(0.5), "retraction per cut")
+        ("stepdown,D", po::value<double>()->required(), "roughing stepdown")
     ;
 
     try {
