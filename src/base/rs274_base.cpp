@@ -26,6 +26,58 @@
 #include <cmath>
 #include <cstring>
 #include <lua.hpp>
+#include "../r6.h"
+#include <sstream>
+
+std::string str(const block_t& block)
+{
+    std::ostringstream s;
+    auto out = [&s](char A, maybe<double> a){
+        if (a) s << A << r6(*a) << ' ';
+    };
+    auto outi = [&s](char A, maybe<unsigned int> a){
+        if (a) s << A << r6(*a) << ' ';
+    };
+    outi('N', block.line_number);
+
+    for (unsigned i = 0; i < 15; ++i) {
+        if (block.g_modes[i] != -1)
+            out('G', static_cast<double>(block.g_modes[i])/10.0);
+    }
+
+    out('X', block.x);
+    out('Y', block.y);
+    out('Z', block.z);
+    out('A', block.a);
+    out('B', block.b);
+    out('C', block.c);
+
+    outi('H', block.h);
+
+    out('I', block.i);
+    out('J', block.j);
+    out('K', block.k);
+
+    outi('L', block.l);
+
+    out('P', block.p);
+    out('Q', block.q);
+    out('R', block.r);
+    out('S', block.s);
+
+    for (unsigned i = 0; i < 10; ++i) {
+        if (block.m_modes[i] != -1)
+            outi('M', block.m_modes[i]);
+    }
+
+    outi('T', block.t);
+    out('D', block.d);
+    out('F', block.f);
+
+    if (block.comment[0]) s << "(" << block.comment << ") ";
+
+    return s.str();
+}
 
 rs274_base::rs274_base(const std::string& conf)
  : config(conf)
@@ -484,7 +536,7 @@ double rs274_base::rapid_rate() const
     return _traverse_rate;
 }
 
-void rs274_base::block_end(const block_t& block)
+void rs274_base::block_end(const block_t&)
 {
 }
 

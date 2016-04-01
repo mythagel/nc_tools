@@ -31,6 +31,8 @@
 #include <string>
 #include "nc_config.h"
 
+std::string str(const block_t& block);
+
 class rs274_base : public rs274ngc
 {
 public:
