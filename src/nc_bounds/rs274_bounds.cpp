@@ -35,8 +35,10 @@ cxxcam::math::point_3 pos2point(const cxxcam::Position& pos) {
 }
 
 void rs274_bounds::_rapid(const Position& pos) {
-    if (track_rapid)
+    if (track_rapid) {
+        bbox += pos2point(convert(program_pos));
         bbox += pos2point(convert(pos));
+    }
 }
 
 void rs274_bounds::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
@@ -51,8 +53,10 @@ void rs274_bounds::_arc(const Position& end, const Position& center, const cxxca
 
 
 void rs274_bounds::_linear(const Position& pos) {
-    if (track_cut)
+    if (track_cut) {
+        bbox += pos2point(convert(program_pos));
         bbox += pos2point(convert(pos));
+    }
 }
 
 rs274_bounds::rs274_bounds(bool cut, bool rapid)
