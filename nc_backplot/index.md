@@ -1,0 +1,20 @@
+---
+layout: page
+title: nc_backplot - GCode backplotter
+permalink: /nc_backplot/
+---
+
+Provide a visual representation of the interpreted GCode provided on standard input.
+
+Optionally allows an .OFF model to be overlaid in the view window
+
+```
+$ nc_backplot --help
+nc_backplot:
+  -h [ --help ]         display this help and exit
+  --model arg           Model file
+```
+
+`$ nc_backplot --model motor_mount.op0.off < motor_mount.op0.ngc`
+
+![backplot image]({{ site.baseurl }}/assets/nc_backplot.png)
