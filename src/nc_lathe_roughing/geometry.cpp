@@ -28,14 +28,14 @@ boost::optional<point_2> intersects(const line_segment_2& l1, const ray_2& r) {
     auto s1 = l1.b - l1.a;
     auto s2 = r.q - r.p;
 
-    vector_2 ortho{s2.y, -s2.x};
-    auto denom = dot({s1.x, s1.y}, ortho);
+    vector_2 ortho{s2.z, -s2.x};
+    auto denom = dot({s1.x, s1.z}, ortho);
     if (std::abs(denom) < 0.000001)
         return {};
 
     auto u = l1.a - r.p;
-    auto s = ( s2.x * u.y - s2.y * u.x) / denom;
-    auto t = (-s1.y * u.x + s1.x * u.y) / denom;
+    auto s = ( s2.x * u.z - s2.z * u.x) / denom;
+    auto t = (-s1.z * u.x + s1.x * u.z) / denom;
 
     if (s >= 0 && t >= 0 && t <= 1)
         return { r.p + (s2 * t) };
@@ -68,9 +68,9 @@ std::pair<boost::optional<point_2>, boost::optional<point_2>> intersects(const a
             break;
     }
 
-    auto A = std::pow(d.x, 2) + std::pow(d.y, 2);
-    auto B = 2 * (d.x * pc.x + d.y * pc.y);
-    auto C = std::pow(pc.x, 2) + std::pow(pc.y, 2) - std::pow(radius(arc), 2);
+    auto A = std::pow(d.x, 2) + std::pow(d.z, 2);
+    auto B = 2 * (d.x * pc.x + d.z * pc.z);
+    auto C = std::pow(pc.x, 2) + std::pow(pc.z, 2) - std::pow(radius(arc), 2);
 
     auto contains = [&](double a) -> bool {
         auto a1 = a;
@@ -92,7 +92,7 @@ std::pair<boost::optional<point_2>, boost::optional<point_2>> intersects(const a
     {
         // Tangent
         auto t1 = -B / (2 * A);
-        point_2 p1 = {ray.p.x + t1 * d.x, ray.p.y + t1 * d.y};
+        point_2 p1 = {ray.p.x + t1 * d.x, ray.p.z + t1 * d.z};
         auto theta1 = theta(arc, p1);
         if(contains(theta1))
             intersections.first = p1;
@@ -102,8 +102,8 @@ std::pair<boost::optional<point_2>, boost::optional<point_2>> intersects(const a
         // Intersection
         auto t1 = (-B + std::sqrt(disc)) / (2 * A);
         auto t2 = (-B - std::sqrt(disc)) / (2 * A);
-        point_2 p1 = {ray.p.x + t1 * d.x, ray.p.y + t1 * d.y};
-        point_2 p2 = {ray.p.x + t2 * d.x, ray.p.y + t2 * d.y};
+        point_2 p1 = {ray.p.x + t1 * d.x, ray.p.z + t1 * d.z};
+        point_2 p2 = {ray.p.x + t2 * d.x, ray.p.z + t2 * d.z};
         auto theta1 = theta(arc, p1);
         auto theta2 = theta(arc, p2);
         if(contains(theta1))
@@ -118,14 +118,14 @@ boost::optional<point_2> intersects (const line_segment_2& l1, const line_segmen
     auto s1 = l1.b - l1.a;
     auto s2 = l2.b - l2.a;
 
-    vector_2 ortho{s2.y, -s2.x};
-    auto denom = dot({s1.x, s1.y}, ortho);
+    vector_2 ortho{s2.z, -s2.x};
+    auto denom = dot({s1.x, s1.z}, ortho);
     if (denom > -0.000001 && denom < 0.000001)
         return {};
 
     auto u = l1.a - l2.a;
-    auto s = ( s2.x * u.y - s2.y * u.x) / denom;
-    auto t = (-s1.y * u.x + s1.x * u.y) / denom;
+    auto s = ( s2.x * u.z - s2.z * u.x) / denom;
+    auto t = (-s1.z * u.x + s1.x * u.z) / denom;
 
     if (s >= 0 && s <= 1 && t >= 0 && t <= 1)
         return { l1.a + (s1 * t) };

@@ -71,7 +71,7 @@ void arc_points(const arc_2& arc, Fn&& fn) {
     for(size_t s = 0; s < total_steps; ++s, t += dt) {
         point_2 p;
         p.x = (std::cos(t) * r) + arc.c.x;
-        p.y = (std::sin(t) * r) + arc.c.y;
+        p.z = (std::sin(t) * r) + arc.c.z;
 
         fn(p);
     }
@@ -85,7 +85,7 @@ public:
 
         cxxcam::math::point_3 cp;
         cp.x = length{p.x * millimeters};
-        cp.y = length{p.y * millimeters};
+        cp.z = length{p.z * millimeters};
         return cp;
     }
 
@@ -108,17 +108,17 @@ public:
 
     void operator()(const line_segment_2& line) {
         if(line.a.x < p.x) monotonic_x = false;
-        if(line.a.y < p.y) monotonic_y = false;
+        if(line.a.z < p.z) monotonic_y = false;
         p = line.a;
 
         if(line.b.x < p.x) monotonic_x = false;
-        if(line.b.y < p.y) monotonic_y = false;
+        if(line.b.z < p.z) monotonic_y = false;
         p = line.b;
     }
     void operator()(const arc_2& arc) {
         arc_points(arc, [&](const point_2& ap) {
             if(ap.x < p.x) monotonic_x = false;
-            if(ap.y < p.y) monotonic_y = false;
+            if(ap.z < p.z) monotonic_y = false;
             p = ap;
         });
     }
@@ -133,7 +133,6 @@ int main(int argc, char* argv[]) {
         ("help,h", "display this help and exit")
         ("stepdown,D", po::value<double>()->required(), "roughing stepdown")
         ("retract,R", po::value<double>()->default_value(0.5), "retraction per cut")
-        ("stepdown,D", po::value<double>()->required(), "roughing stepdown")
     ;
 
     try {
@@ -167,54 +166,16 @@ int main(int argc, char* argv[]) {
         }
 
         auto path = nc_path.path();
-        {
-            line_segment_2 line;
-            line.a = {0,0};
-            line.b = {0,1};
 
-            ray_2 ray;
-            ray.p = {0.5, 0.5};
-            ray.q = {0, 0.5};
-
-            if(auto p = intersects(line, ray)) {
-                std::cout << "INTERSECTS " << p->x << ", " << p->y << "\n";
-            } else {
-                std::cout << "no intersection\n";
-            }
-
-            arc_2 arc;
-
-            /*
-            arc.dir = arc_2::cw;
-            arc.a = {-5,0};
-            arc.b = {5,0};
-            arc.c = {0,0};
-            */
-            arc.dir = arc_2::ccw;
-            arc.a = {0,5};
-            arc.b = {5,0};
-            arc.c = {0,0};
-
-            for(int y1 = 110; y1 >= -10; --y1) {
-                double y = (y1 / 10.0) -5;
-
-                ray_2 ray2;
-                ray2.p = {0, y};
-                ray2.q = {1, y};
-
-                std::cout << y <<" ";
-                auto p = intersects(arc, ray2);
-                if(p.first) {
-                    std::cout << "INTERSECTION1 " << p.first->x << ", " << p.first->y << "\n";
-                }
-                if(p.second) {
-                    std::cout << "INTERSECTION2 " << p.second->x << ", " << p.second->y << "\n";
-                }
-                if(!p.first && !p.second) {
-                    std::cout << "no intersection\n";
-                }
-            }
+        monotonic_visitor monotonic;
+        bounding_box_visitor bbox;
+        for (auto& geom : path) {
+            boost::apply_visitor(monotonic, geom);
+            boost::apply_visitor(bbox, geom);
         }
+        // std::cout << "x: " << monotonic.monotonic_x << " y: " << monotonic.monotonic_y << "\n";
+        std::cout << bbox.bbox << "\n";
+
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";

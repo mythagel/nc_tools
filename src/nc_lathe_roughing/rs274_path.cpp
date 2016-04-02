@@ -35,9 +35,9 @@ void rs274_path::_rapid(const Position&) {
 void rs274_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3&, int) {
     // TODO handle plane
     arc_2 arc;
-    arc.a = {program_pos.x, program_pos.y};
-    arc.b = {end.x, end.y};
-    arc.c = {center.x, center.y};
+    arc.a = {program_pos.x, program_pos.z};
+    arc.b = {end.x, end.z};
+    arc.c = {center.x, center.z};
     path_.push_back(arc);
 }
 
@@ -45,8 +45,8 @@ void rs274_path::_arc(const Position& end, const Position& center, const cxxcam:
 void rs274_path::_linear(const Position& pos) {
     // TODO verify 2d / yz plane
     line_segment_2 line;
-    line.a = {program_pos.x, program_pos.y};
-    line.b = {pos.x, pos.y};
+    line.a = {program_pos.x, program_pos.z};
+    line.b = {pos.x, pos.z};
     path_.push_back(line);
 }
 

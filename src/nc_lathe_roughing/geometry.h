@@ -30,29 +30,29 @@
 struct point_2
 {
     double x;
-    double y;
+    double z;
 
     point_2 operator-(const point_2& p) const {
-        return {x-p.x, y-p.y};
+        return {x-p.x, z-p.z};
     }
     point_2 operator+(const point_2& p) const {
-        return {x+p.x, y+p.y};
+        return {x+p.x, z+p.z};
     }
     point_2 operator*(double t) const {
-        return {x*t, y*t};
+        return {x*t, z*t};
     }
 };
 inline double distance(const point_2& a, const point_2& b) {
-    return std::sqrt(std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2));
+    return std::sqrt(std::pow(b.x - a.x, 2) + std::pow(b.z - a.z, 2));
 }
 
 struct vector_2
 {
     double x;
-    double y;
+    double z;
 };
 inline double dot(const vector_2& a, const vector_2& b) {
-    return a.x * b.x + a.y * b.y;
+    return a.x * b.x + a.z * b.z;
 }
 
 struct ray_2
@@ -80,7 +80,7 @@ inline double radius(const arc_2& arc) {
     return std::abs(distance(arc.a, arc.c));
 }
 inline double theta(const arc_2& arc, const point_2& p) {
-    auto t = atan2(p.y - arc.c.y, p.x - arc.c.x);
+    auto t = atan2(p.z - arc.c.z, p.x - arc.c.x);
     if(t < 0) return (2*3.1415926) + t;
     return t;
 }
