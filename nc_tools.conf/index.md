@@ -7,7 +7,8 @@ permalink: /nc_tools.conf/
 nc_tools.conf
 =============
 
-Project specific configuration shared by all nc_tools.
+Project specific configuration shared by all nc_tools. Searched in current working directory and parent paths, allowing
+the configuration to be project specific.
 
 machine
 -------
