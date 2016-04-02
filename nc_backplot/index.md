@@ -4,9 +4,9 @@ title: nc_backplot - GCode backplotter
 permalink: /nc_backplot/
 ---
 
-Provide a visual representation of the interpreted GCode provided on standard input.
+Provide a visual representation of the GCode provided on standard input.
 
-Optionally allows an .OFF model to be overlaid in the view window
+Optionally allows an .off format 3d model to be overlaid in the view window
 
 ```
 $ nc_backplot --help
