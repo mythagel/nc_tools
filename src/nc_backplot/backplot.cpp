@@ -249,7 +249,7 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
 }
 
 int main(int argc, char* argv[]) {
-    po::options_description options("nc_model");
+    po::options_description options("nc_backplot");
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 

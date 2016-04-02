@@ -17,8 +17,8 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
-        ("delete,d", po::value<AxisModification>(), "delete axis")
-        ("swap,s", po::value<AxisModification>(), "swap axes")
+        ("delete,d", po::value<AxisModification>(), "delete axis [XYZABC]")
+        ("swap,s", po::value<AxisModification>(), "swap axes [XYZABC][XYZABC]")
     ;
 
     try {
