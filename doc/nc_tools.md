@@ -8,7 +8,7 @@
     * delay the output of the gcode based on the machining time option 1x 2x, etc
  * nc_model
     * generate a 3d model of the incoming gcode, tools and stock
- * ~~nc_rename_axis~~
+ * nc_rename_axis
     * rename an axis, a=> is delete, a=>b is rename, a<=>b is swap
  * ~~nc_fold_moves~~
     * fold adajacent G00 moves
