@@ -226,7 +226,7 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     geom->setNormalArray(normals, osg::Array::BIND_PER_PRIMITIVE_SET);
 
     auto colors = new osg::Vec4Array;
-    colors->push_back({0.0f,0.9f,0.0f,0.2f});
+    colors->push_back({0.0f,0.9f,0.0f,0.4f});
     geom->setColorArray(colors, osg::Array::BIND_OVERALL);
 
     osgUtil::SmoothingVisitor::smooth(*geom);
@@ -237,7 +237,7 @@ void pushModel(osg::Group* parent, const geom::object_t& object) {
     auto mm = dynamic_cast<osg::Material*>(stateset->getAttribute(osg::StateAttribute::MATERIAL));
     if (!mm) mm = new osg::Material;
 
-    mm->setAlpha(osg::Material::FRONT_AND_BACK, 0.2f);
+    mm->setAlpha(osg::Material::FRONT_AND_BACK, 0.4f);
     mm->setColorMode(osg::Material::DIFFUSE);
 
     stateset->setAttributeAndModes(mm, osg::StateAttribute::OVERRIDE | osg::StateAttribute::ON);
