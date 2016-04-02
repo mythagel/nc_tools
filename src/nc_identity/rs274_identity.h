@@ -25,7 +25,6 @@
 #ifndef RS274_IDENTITY_H_
 #define RS274_IDENTITY_H_
 #include "base/rs274_base.h"
-#include "Bbox.h"
 
 class rs274_identity : public rs274_base
 {
