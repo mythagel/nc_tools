@@ -17,19 +17,37 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
+        ("delete,d", po::value<AxisModification>(), "delete axis")
+        ("swap,s", po::value<AxisModification>(), "swap axes")
     ;
 
     try {
-        po::variables_map vm;
-        store(po::command_line_parser(args).options(options).run(), vm);
+        auto parsed = po::command_line_parser(args).options(options).run();
 
-        if(vm.count("help")) {
-            std::cout << options << "\n";
-            return 0;
+        for (auto& option : parsed.options) {
+            if(option.string_key == "help") {
+                std::cout << options << "\n";
+                return 0;
+            }
         }
-        notify(vm);
 
-        rs274_rename rename;
+        std::vector<AxisModification> mods;
+        auto is_none = [](AxisModification::Axis a) { return a == AxisModification::axis_None; };
+        for (auto& option : parsed.options) {
+            if (option.string_key == "delete") {
+                auto value = boost::lexical_cast<AxisModification>(option.value[0]);
+                if(is_none(value.from) || !is_none(value.to))
+                    throw std::runtime_error("Invalid axis specification for delete option");
+                mods.push_back(value);
+            } else if (option.string_key == "swap") {
+                auto value = boost::lexical_cast<AxisModification>(option.value[0]);
+                if(is_none(value.from) || is_none(value.to))
+                    throw std::runtime_error("Invalid axis specification for swap option");
+                mods.push_back(value);
+            }
+        }
+
+        rs274_rename rename(mods);
 
         std::string line;
         while(std::getline(std::cin, line)) {

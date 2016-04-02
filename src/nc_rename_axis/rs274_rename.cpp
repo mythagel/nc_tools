@@ -24,6 +24,63 @@
 
 #include "rs274_rename.h"
 #include <iostream>
+#include <stdexcept>
+
+AxisModification::Axis AxisModification::map(char c) {
+    switch(c) {
+        case 'x':
+        case 'X':
+            return axis_X;
+        case 'y':
+        case 'Y':
+            return axis_Y;
+        case 'z':
+        case 'Z':
+            return axis_Z;
+        case 'a':
+        case 'A':
+            return axis_A;
+        case 'b':
+        case 'B':
+            return axis_B;
+        case 'c':
+        case 'C':
+            return axis_C;
+        case '-':
+            return axis_None;
+    }
+    throw std::runtime_error("Unrecognised axis");
+}
+
+void apply_mod(AxisModification a, block_t& block) {
+    maybe<double> empty;
+    auto axis = [&block, &empty](AxisModification::Axis a) -> maybe<double>& {
+        switch (a) {
+            case AxisModification::axis_None:
+                return empty;
+            case AxisModification::axis_X:
+                return block.x;
+            case AxisModification::axis_Y:
+                return block.y;
+            case AxisModification::axis_Z:
+                return block.z;
+            case AxisModification::axis_A:
+                return block.a;
+            case AxisModification::axis_B:
+                return block.b;
+            case AxisModification::axis_C:
+                return block.c;
+        }
+        throw std::logic_error("Unrecognised axis");
+    };
+
+    using std::swap;
+    swap(axis(a.from), axis(a.to));
+}
+void rs274_rename::apply_mods(block_t& block) const {
+    for (auto& mod : mods)
+        apply_mod(mod, block);
+}
 
 void rs274_rename::_rapid(const Position&) {
 }
@@ -46,20 +103,19 @@ void rs274_rename::block_end(const block_t& b) {
         G_2 = 20,
         G_3 = 30
     };
+    auto is_motion = [](int motion_to_be){
+        return  motion_to_be == G_0 || 
+                motion_to_be == G_1 || 
+                motion_to_be == G_2 || 
+                motion_to_be == G_3;
+    };
 
-    if (
-        block.motion_to_be == G_0 || 
-        block.motion_to_be == G_1 || 
-        block.motion_to_be == G_2 || 
-        block.motion_to_be == G_3
-        ) {
-        // TODO swap from configuration, delete == swap with empty optional
-        swap(block.x, block.a);
-    }
+    if (is_motion(block.motion_to_be))
+        apply_mods(block);
 
     std::cout << str(block) << "\n";
 }
-rs274_rename::rs274_rename()
- : rs274_base() {
+rs274_rename::rs274_rename(const std::vector<AxisModification>& mods)
+ : rs274_base(), mods(mods) {
 }
 

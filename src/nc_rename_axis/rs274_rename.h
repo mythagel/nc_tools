@@ -25,11 +25,39 @@
 #ifndef RS274_RENAME_H_
 #define RS274_RENAME_H_
 #include "base/rs274_base.h"
-#include "Bbox.h"
+#include <iostream>
+#include <vector>
+
+struct AxisModification
+{
+    enum Axis
+    {
+        axis_None,
+        axis_X,
+        axis_Y,
+        axis_Z,
+        axis_A,
+        axis_B,
+        axis_C
+    };
+    static Axis map(char c);
+
+    Axis from = axis_None;
+    Axis to = axis_None;
+};
+inline std::istream& operator>>(std::istream& is, AxisModification& a)
+{
+    char c;
+    if(is >> c) a.from = AxisModification::map(c);
+    if(is.peek() != EOF && is >> c) a.to = AxisModification::map(c);
+    return is;
+}
 
 class rs274_rename : public rs274_base
 {
 private:
+    std::vector<AxisModification> mods;
+    void apply_mods(block_t& block) const;
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
@@ -38,7 +66,7 @@ private:
     virtual void block_end(const block_t& block);
 
 public:
-	rs274_rename();
+	rs274_rename(const std::vector<AxisModification>& mods);
 
 	virtual ~rs274_rename() = default;
 };
