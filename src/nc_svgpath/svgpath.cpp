@@ -319,7 +319,7 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    po::options_description options("nc_stock");
+    po::options_description options("nc_svg_path");
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
