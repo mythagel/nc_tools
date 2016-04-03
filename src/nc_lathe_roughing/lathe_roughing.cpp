@@ -11,6 +11,7 @@
 
 #include "Bbox.h"
 #include "Units.h"
+#include <boost/math/special_functions/sign.hpp>
 
 namespace po = boost::program_options;
 
@@ -103,23 +104,44 @@ public:
 class monotonic_visitor : public boost::static_visitor<void> {
 public:
     bool monotonic_x = true;
-    bool monotonic_y = true;
-    point_2 p = {0, 0};
+    bool monotonic_z = true;
+    int current_dir_x = 0;
+    int current_dir_z = 0;
 
     void operator()(const line_segment_2& line) {
-        if(line.a.x < p.x) monotonic_x = false;
-        if(line.a.z < p.z) monotonic_y = false;
-        p = line.a;
-
-        if(line.b.x < p.x) monotonic_x = false;
-        if(line.b.z < p.z) monotonic_y = false;
-        p = line.b;
+        auto dir_x = boost::math::sign(line.b.x - line.a.x);
+        auto dir_z = boost::math::sign(line.b.z - line.a.z);
+        
+        if (dir_x != 0) {
+            if (current_dir_x == 0) current_dir_x = dir_x;
+            if (dir_x != current_dir_x) monotonic_x = false;
+        }
+        if (dir_z != 0) {
+            if (current_dir_z == 0) current_dir_z = dir_z;
+            if (dir_z != current_dir_z) monotonic_z = false;
+        }
     }
     void operator()(const arc_2& arc) {
-        arc_points(arc, [&](const point_2& ap) {
-            if(ap.x < p.x) monotonic_x = false;
-            if(ap.z < p.z) monotonic_y = false;
-            p = ap;
+        bool init = false;
+        point_2 lp;
+        arc_points(arc, [&](const point_2& p) {
+            if (!init) {
+                lp = p;
+                init = true;
+            }
+            auto dir_x = boost::math::sign(p.x - lp.x);
+            auto dir_z = boost::math::sign(p.z - lp.z);
+
+            if (dir_x != 0) {
+                if (current_dir_x == 0) current_dir_x = dir_x;
+                if (dir_x != current_dir_x) monotonic_x = false;
+            }
+            if (dir_z != 0) {
+                if (current_dir_z == 0) current_dir_z = dir_z;
+                if (dir_z != current_dir_z) monotonic_z = false;
+            }
+
+            lp = p;
         });
     }
 };
@@ -173,8 +195,12 @@ int main(int argc, char* argv[]) {
             boost::apply_visitor(monotonic, geom);
             boost::apply_visitor(bbox, geom);
         }
-        // std::cout << "x: " << monotonic.monotonic_x << " y: " << monotonic.monotonic_y << "\n";
-        std::cout << bbox.bbox << "\n";
+        //std::cout << "monotonic x: " << monotonic.monotonic_x << " monotonic z: " << monotonic.monotonic_z << "\n";
+        //std::cout << bbox.bbox << "\n";
+
+        // determine starting point and direction based on initial position
+        /* Find which corner of path tool is positioned at, and +-x +-y
+         * */
 
     } catch(const po::error& e) {
         print_exception(e);
