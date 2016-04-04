@@ -44,21 +44,21 @@ private:
 protected:
     mutable nc_config config;
 
-	Plane       _active_plane = Plane::XY;
-	int               _active_slot = 1;
-	double            _feed_rate = 0.0;
-	int               _flood = 0;
-	int               _mist = 0;
-	Units       _length_unit_type = Units::Metric;
-	Motion _motion_mode = Motion::Continuous;
+	Plane               _active_plane = Plane::XY;
+	int                 _active_slot = 1;
+	double              _feed_rate = 0.0;
+	int                 _flood = 0;
+	int                 _mist = 0;
+	Units               _length_unit_type = Units::Metric;
+	Motion              _motion_mode = Motion::Continuous;
 
-	Position probe_pos;
-	Position origin_pos;
-	Position program_pos;
+	Position            probe_pos;
+	Position            origin_pos;
+	Position            program_pos;
 
-	double            _spindle_speed;
-	Direction   _spindle_turning;
-	double            _traverse_rate;
+	double              _spindle_speed;
+	Direction           _spindle_turning;
+	double              _traverse_rate;
 
     cxxcam::Position convert(const Position& p) const;
 private:
