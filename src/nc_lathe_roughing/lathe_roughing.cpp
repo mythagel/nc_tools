@@ -169,6 +169,9 @@ int main(int argc, char* argv[]) {
 
         rs274_path nc_path;
 
+        nc_path.read("G18");
+        nc_path.execute();
+
         std::string line;
         while(std::getline(std::cin, line)) {
             int status;
@@ -199,8 +202,33 @@ int main(int argc, char* argv[]) {
         //std::cout << bbox.bbox << "\n";
 
         // determine starting point and direction based on initial position
-        /* Find which corner of path tool is positioned at, and +-x +-y
+        /* Find which corner of path tool is positioned at, infer whether
+         * motion is in +x or -x and +z or -z
+         *
+         * calculate number of passes, abs x depth <integer divide> depth of cut gives number of passes
+         * abs x depth / number of passes gives exact depth per pass
+         * cast ray at x depth, incremented by depthperpass
+         * if no intersections, move from minz to maxz
+         * otherwise, feed to first intersection, follow path until at x depth again, then feed to next intersection
          * */
+        unsigned passes = std::abs(cxxcam::units::length_mm(bbox.bbox.max.x - bbox.bbox.min.x).value()) / vm["stepdown"].as<double>();
+        double step_x = cxxcam::units::length_mm(bbox.bbox.max.x - bbox.bbox.min.x).value() / static_cast<double>(passes);
+        std::cout << step_x << "\n";
+
+        double x;
+        if(true /*min -> max direction*/) {
+            x = cxxcam::units::length_mm(bbox.bbox.min.x).value();
+        } else {
+            x = cxxcam::units::length_mm(bbox.bbox.max.x).value();
+            step_x = -step_x;
+        }
+
+        for (unsigned pass = 0; pass < passes; ++pass) {
+            x += step_x;
+            auto intersections = intersects(path, {{x, 0}, {x, 1}});
+            for (auto i : intersections) {
+            }
+        }
 
     } catch(const po::error& e) {
         print_exception(e);
