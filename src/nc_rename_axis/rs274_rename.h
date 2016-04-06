@@ -38,7 +38,10 @@ struct AxisModification
         axis_Z,
         axis_A,
         axis_B,
-        axis_C
+        axis_C,
+        axis_I,
+        axis_J,
+        axis_K,
     };
     static Axis map(char c);
 

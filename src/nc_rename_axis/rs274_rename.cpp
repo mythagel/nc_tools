@@ -46,6 +46,15 @@ AxisModification::Axis AxisModification::map(char c) {
         case 'c':
         case 'C':
             return axis_C;
+        case 'i':
+        case 'I':
+            return axis_I;
+        case 'j':
+        case 'J':
+            return axis_J;
+        case 'k':
+        case 'K':
+            return axis_K;
         case '-':
             return axis_None;
     }
@@ -58,18 +67,27 @@ void apply_mod(AxisModification a, block_t& block) {
         switch (a) {
             case AxisModification::axis_None:
                 return empty;
+
             case AxisModification::axis_X:
                 return block.x;
             case AxisModification::axis_Y:
                 return block.y;
             case AxisModification::axis_Z:
                 return block.z;
+
             case AxisModification::axis_A:
                 return block.a;
             case AxisModification::axis_B:
                 return block.b;
             case AxisModification::axis_C:
                 return block.c;
+
+            case AxisModification::axis_I:
+                return block.i;
+            case AxisModification::axis_J:
+                return block.j;
+            case AxisModification::axis_K:
+                return block.k;
         }
         throw std::logic_error("Unrecognised axis");
     };
