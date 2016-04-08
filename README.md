@@ -9,13 +9,11 @@ $ cat robot2.ngc | nc_backplot
 
 ![robot backplot](https://raw.github.com/mythagel/backplot/master/robot_backplot.png)
 
-~~not implemented / not complete~~
-
- * nc_backplot
+ * [nc_backplot](http://mythagel.github.io/nc_tools/nc_backplot/)
     * display a backplot of the incoming gcode
- * nc_model
+ * [nc_model](http://mythagel.github.io/nc_tools/nc_model/)
     * generate a 3d model of the incoming gcode, given tools and stock
- * nc_rename_axis
+ * [nc_rename_axis](http://mythagel.github.io/nc_tools/nc_rename_axis/)
     * rename an axis, a=> is delete, a=>b is rename, a<=>b is swap
  * nc_bounds
     * bounding box of gcode or .off model
@@ -24,14 +22,18 @@ $ cat robot2.ngc | nc_backplot
     * nc_transform -a 45 -b 45 -x -30 # rotate 45 deg around x, 45 around y, translate -30 on x
  * nc_tooltable
     * generate linuxcnc tool table from nc_tools.conf
- * nc_contour_pocket
+ * [nc_contour_pocket](http://mythagel.github.io/nc_tools/nc_contour_pocket/)
     * Generate contour parallel toolpath from gcode path
- * nc_stock
+ * [nc_stock](http://mythagel.github.io/nc_tools/nc_stock/)
     * Generate .off stock models
- * nc_svgpath
+ * [nc_svgpath](http://mythagel.github.io/nc_tools/nc_svgpath/)
     * SVG path data -> gcode converter
  * nc_identity
     * gcode identity transformation - base for new tools
+
+
+~~not implemented / not complete~~
+
  * ~~nc_shortlines~~
     * split incoming gcode into short line segments
     * cli option --arc-only
@@ -55,6 +57,7 @@ $ cat robot2.ngc | nc_backplot
     * G70/G71 canned cycle style lathe roughing generator 
 
 Generators
+
  * ~~lathe_path~~
     * generate lathe operations for svg path
     * TODO determine machining strategy for lathe operations based on different tools and back faces
