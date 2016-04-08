@@ -67,6 +67,8 @@ int main(int argc, char* argv[]) {
             Paths solution;
             co.Execute(solution, offset * nc_path.scale());
 
+            // TODO find point on path closest to current point and rotate
+            // points so that one is first
             for(auto& path : solution) {
                 std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
                 for(auto& p : path) {
