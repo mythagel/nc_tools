@@ -5,10 +5,20 @@
 #include "rs274_clipper_path.h"
 #include <iostream>
 #include "clipper.hpp"
+#include <algorithm>
 
 
 namespace po = boost::program_options;
 using namespace ClipperLib;
+
+struct point_2
+{
+    double x;
+    double y;
+};
+inline double distance(const point_2& a, const point_2& b) {
+    return std::sqrt(std::pow(b.x - a.x, 2) + std::pow(b.y - a.y, 2));
+}
 
 int main(int argc, char* argv[]) {
     po::options_description options("nc_contour_pocket");
@@ -18,6 +28,7 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "display this help and exit")
         ("tool_r,r", po::value<unsigned>()->required(), "Tool radius")
+        ("stepover,s", po::value<double>()->default_value(0.9), "Tool stepover 0.0 - 1.0")
     ;
 
     try {
@@ -31,7 +42,7 @@ int main(int argc, char* argv[]) {
         notify(vm);
 
         rs274_clipper_path nc_path;
-        unsigned tool_r = vm["tool_r"].as<unsigned>();
+        unsigned tool_offset = vm["tool_r"].as<unsigned>() * 2 * vm["stepover"].as<double>();
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
@@ -63,25 +74,38 @@ int main(int argc, char* argv[]) {
         co.ArcTolerance = 0.1 * nc_path.scale();
 
         double offset = 0.0;
+        point_2 current_point = {0, 0};
         while (true) {
             Paths solution;
             co.Execute(solution, offset * nc_path.scale());
 
-            // TODO find point on path closest to current point and rotate
-            // points so that one is first
+            auto to_point = [&](const IntPoint& p) -> point_2 {
+                return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
+            };
+
             for(auto& path : solution) {
+
+                // TODO sort subpaths
+
+                auto it_near = std::min_element(begin(path), end(path), 
+                    [&](const IntPoint& l, const IntPoint& r) -> bool {
+                        return std::abs(distance(to_point(l), current_point)) < std::abs(distance(to_point(r), current_point));
+                    });
+                std::rotate(begin(path), it_near, end(path));
+
                 std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
                 for(auto& p : path) {
                     std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Y" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
                 }
                 std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
                 std::cout << "\n";
+                current_point = to_point(*path.begin());
             }
 
             if(solution.empty())
                 break;
 
-            offset -= tool_r;
+            offset -= tool_offset;
         }
 
     } catch(const po::error& e) {
