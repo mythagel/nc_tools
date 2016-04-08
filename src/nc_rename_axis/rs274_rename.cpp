@@ -131,6 +131,9 @@ void rs274_rename::block_end(const block_t& b) {
     if (is_motion(block.motion_to_be))
         apply_mods(block);
 
+    // TODO validate block is still valid after mods - e.g. no axis words with movement
+    // must maintain non-axis words, e.g. feedrate
+
     std::cout << str(block) << "\n";
 }
 rs274_rename::rs274_rename(const std::vector<AxisModification>& mods)
