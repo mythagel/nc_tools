@@ -1,7 +1,7 @@
 nc_tools
 ========
 
-A collection of small gcode tools.
+A collection of composable CNC/CAM GCode tools.
 
 ```
 $ cat robot2.ngc | nc_backplot
