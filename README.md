@@ -55,6 +55,8 @@ $ cat robot2.ngc | nc_backplot
     * analyse / optimise feedrate of provided gcode
  * ~~nc_lathe_roughing~~
     * G70/G71 canned cycle style lathe roughing generator 
+ * ~~nc_blueprint~~
+    * Generate SVG blueprint with 3 ortho + perspective view of gcode / model.
 
 Generators
 
