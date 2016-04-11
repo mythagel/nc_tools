@@ -22,16 +22,27 @@
  *      Author: nicholas
  */
 
-#include "rs274_path.h"
+#include "rs274_lathe_path.h"
 #include <iostream>
 #include <sstream>
+#include "Path.h"
+#include "../fold_adjacent.h"
 
-#include "../r6.h"
-
-void rs274_path::_rapid(const Position&) {
-    if (!path_.empty())
-        throw std::runtime_error("Rapid within profile disallowed");
+point_2 make_point(const cxxcam::math::point_3& p) {
+    using cxxcam::units::length_mm;
+    return {length_mm(p.x).value(), length_mm(p.z).value()};
 }
+
+void rs274_path::_rapid(const Position& p) {
+    using cxxcam::units::length_mm;
+    if (!path_.empty()) {
+        throw std::runtime_error("Rapid within profile disallowed");
+    } else {
+        auto pos = convert(p);
+        start_point_ = {length_mm(pos.X).value(), length_mm(pos.Z).value()};
+    }
+}
+
 void rs274_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
     using cxxcam::units::length_mm;
 
@@ -42,17 +53,15 @@ void rs274_path::_arc(const Position& end, const Position& center, const cxxcam:
     if (std::abs(rotation) > 1)
         throw std::runtime_error("Single rotation only in path");
 
-    auto a = convert(program_pos);
-    auto b = convert(end);
-    auto c = convert(center);
-    arc_2 arc;
-    arc.dir = rotation < 0 ? arc_2::cw : arc_2::ccw;
-    arc.a = {length_mm(a.X).value(), length_mm(a.Z).value()};
-    arc.b = {length_mm(b.X).value(), length_mm(b.Z).value()};
-    arc.c = {length_mm(c.X).value(), length_mm(c.Z).value()};
-    path_.push_back(arc);
-}
+    using namespace cxxcam::path;
+	auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
 
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(path_),
+        [this](const cxxcam::path::step& s0, const cxxcam::path::step& s1) -> line_segment_2
+        {
+            return { make_point(s0.position), make_point(s1.position) };
+        });
+}
 
 void rs274_path::_linear(const Position& pos) {
     using cxxcam::units::length_mm;
@@ -62,18 +71,23 @@ void rs274_path::_linear(const Position& pos) {
     if (std::abs(pos.y - program_pos.y) > 0)
         throw std::runtime_error("Path must be 2d");
 
-    auto a = convert(program_pos);
-    auto b = convert(pos);
-    line_segment_2 line;
-    line.a = {length_mm(a.X).value(), length_mm(a.Z).value()};
-    line.b = {length_mm(b.X).value(), length_mm(b.Z).value()};
-    path_.push_back(line);
+	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+
+    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(path_),
+        [this](const cxxcam::path::step& s0, const cxxcam::path::step& s1) -> line_segment_2
+        {
+            return { make_point(s0.position), make_point(s1.position) };
+        });
 }
 
 rs274_path::rs274_path()
  : rs274_base() {
 }
 
-std::vector<rs274_path::geometry> rs274_path::path() const {
+point_2 rs274_path::start_point() const {
+    return start_point_;
+}
+
+std::vector<line_segment_2> rs274_path::path() const {
     return path_;
 }

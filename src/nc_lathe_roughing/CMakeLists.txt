@@ -15,7 +15,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
 )
 
-add_executable(nc_lathe_roughing lathe_roughing.cpp geometry.cpp rs274_path.cpp ../print_exception.cpp)
+add_executable(nc_lathe_roughing lathe_roughing.cpp geometry.cpp rs274_lathe_path.cpp ../print_exception.cpp)
 target_link_libraries(nc_lathe_roughing
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}

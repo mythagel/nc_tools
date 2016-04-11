@@ -27,23 +27,22 @@
 #include "base/rs274_base.h"
 #include "geometry.h"
 #include <vector>
-#include <boost/variant.hpp>
 
 class rs274_path : public rs274_base
 {
-public:
-    using geometry = boost::variant<line_segment_2, arc_2>;
 private:
 
     virtual void _rapid(const Position&);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
 
-    std::vector<geometry> path_;
+    point_2 start_point_ = {0, 0};
+    std::vector<line_segment_2> path_;
 public:
 	rs274_path();
 
-    std::vector<geometry> path() const;
+    point_2 start_point() const;
+    std::vector<line_segment_2> path() const;
 
 	virtual ~rs274_path() = default;
 };

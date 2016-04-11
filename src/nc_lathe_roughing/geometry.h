@@ -55,37 +55,12 @@ inline double dot(const vector_2& a, const vector_2& b) {
     return a.x * b.x + a.z * b.z;
 }
 
-struct ray_2
-{
-    point_2 p;
-    point_2 q;
-};
-
 struct line_segment_2
 {
     point_2 a;
     point_2 b;
 };
-struct arc_2
-{
-    enum {
-        cw,
-        ccw
-    } dir;
-    point_2 a;
-    point_2 b;
-    point_2 c;
-};
-inline double radius(const arc_2& arc) {
-    return std::abs(distance(arc.a, arc.c));
-}
-inline double theta(const arc_2& arc, const point_2& p) {
-    auto t = atan2(p.z - arc.c.z, p.x - arc.c.x);
-    if(t < 0) return (2*3.1415926) + t;
-    return t;
-}
 
-boost::optional<point_2> intersects(const line_segment_2& l1, const ray_2& r);
-std::pair<boost::optional<point_2>, boost::optional<point_2>> intersects(const arc_2& arc, const ray_2& ray);
+boost::optional<point_2> intersects(const line_segment_2& l1, const line_segment_2& l2);
 
 #endif /* GEOMETRY_H_ */
