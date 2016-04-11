@@ -34,8 +34,13 @@ cxxcam::math::point_3 pos2point(const cxxcam::Position& pos) {
     return {pos.X, pos.Y, pos.Z};
 }
 
+// TODO fix bbox calc = init to first point
 void rs274_bounds::_rapid(const Position& pos) {
     if (track_rapid) {
+        if (!first_point) {
+            bbox.min = bbox.max = pos2point(convert(program_pos));
+            first_point = true;
+        }
         bbox += pos2point(convert(program_pos));
         bbox += pos2point(convert(pos));
     }
@@ -46,8 +51,13 @@ void rs274_bounds::_arc(const Position& end, const Position& center, const cxxca
     if (track_cut) {
         auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
 
-        for (auto& step : steps)
+        for (auto& step : steps) {
+            if (!first_point) {
+                bbox.min = bbox.max = step.position;
+                first_point = true;
+            }
             bbox += step.position;
+        }
     }
 }
 
@@ -60,7 +70,7 @@ void rs274_bounds::_linear(const Position& pos) {
 }
 
 rs274_bounds::rs274_bounds(bool cut, bool rapid)
- : rs274_base(), track_cut(cut), track_rapid(rapid) {
+ : rs274_base(), first_point(false), track_cut(cut), track_rapid(rapid) {
 }
 
 cxxcam::Bbox rs274_bounds::bounding_box() const {

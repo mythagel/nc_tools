@@ -30,6 +30,7 @@
 class rs274_bounds : public rs274_base
 {
 private:
+    bool first_point;
     cxxcam::Bbox bbox;
     bool track_cut;
     bool track_rapid;
