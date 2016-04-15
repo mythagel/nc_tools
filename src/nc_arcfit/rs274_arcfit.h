@@ -27,18 +27,39 @@
 #include "base/rs274_base.h"
 #include "geometry_3.h"
 #include <vector>
+#include <boost/optional.hpp>
 
 class rs274_arcfit : public rs274_base
 {
 private:
-    std::vector<block_t> candidate;
+    struct block_point {
+        block_t block;
+        geometry_3::point_3 p;
+    };
+    boost::optional<block_point> point;
+
+    // state machine
+    enum class State {
+        indeterminate,
+        collecting_points
+    } state;
+    struct {
+        std::vector<block_point> points;
+        geometry_3::vector_3 plane;
+        double r;
+        geometry_3::point_3 center;
+        int dir;
+        double max_deviation = 0.1;
+        double point_deviation = 0.1;
+    } arc;
+    void reset();
+    void push(const block_point& point);
+    void flush(bool all = false);
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
     virtual void block_end(const block_t& block);
-
-    void flush(int n);
 
 public:
 	rs274_arcfit();

@@ -25,18 +25,32 @@
 #include "rs274_arcfit.h"
 #include <iostream>
 #include "Units.h"
+#include <boost/math/special_functions/sign.hpp>
+
+namespace {
+geometry_3::point_3 to_point_3(const cxxcam::Position& pos) {
+    using cxxcam::units::length_mm;
+    return {length_mm(pos.X).value(), length_mm(pos.Y).value(), length_mm(pos.Z).value()};
+}
+}
 
 void rs274_arcfit::_rapid(const Position&) {
+    point = boost::none;
 }
 
 void rs274_arcfit::_arc(const Position&, const Position&, const cxxcam::math::vector_3&, int) {
+    point = boost::none;
 }
 
 
-void rs274_arcfit::_linear(const Position&) {
+void rs274_arcfit::_linear(const Position& pos) {
+    // record motion point here
+    point = block_point();
+    point->p = to_point_3(convert(pos));
 }
 
 void rs274_arcfit::block_end(const block_t& block) {
+    // but process it here iff the block describes simple linear motion
     enum {
         G_1 = 10
     };
@@ -60,66 +74,125 @@ void rs274_arcfit::block_end(const block_t& block) {
             (block.x || block.y || block.z) &&      // At least one axis word
             g1_only(block) && no_m_modes(block);    // No other G or M codes
     };
+
     
-    /* TODO problem - blocks do not describe complete
-     * content of path - current point and complete point information
-     * requires maintaining state - but that state may not represent
-     * the content of the block directly (tool offsets)
-     *
-     * However the reverse is also true, applying the arc folding to
-     * the path which has already been transformed is not ideal either.
-     * perhaps add an option to encode the complete current xyz position
-     * into the gcode parser.
-     *
-     * have to then make assumptions that units are the same, etc.
-     * reasonable since any other gcodes will interrupt the processing.
-     *
-     * really only need to reliably determine start point of candidate arc
-     * to be able to fill in detail missing from blocks.
-     *
-     * ORRRR maybe just wait until the appopriate context has been gathered...
-     * not optimal - not bad either - arc will vary across both axes in plane
-     * */
-    if (is_linear(block)) {
-        candidate.push_back(block);
-        if (candidate.size() >= 3) {
-        }
+    if (is_linear(block) && point) {
+        point->block = block;
+        push(*point);
     } else {
-        flush(-1);
+        flush(true);
         std::cout << str(block) << "\n";
     }
-    // TODO determine if block represents pure linear motion
-    // if true, do arcfit processing
-    // if not, flush arcfit then output.
-/*    using cxxcam::units::length_mm;
-    // move arcfit state machine
-    auto p = convert(pos);
-    points.push_back({length_mm(p.X).value(), length_mm(p.Y).value(), length_mm(p.Z).value()});
-
-    if(points.size() > 3) {
-        if (geometry_3::collinear(points[0], points[1], points[2])) {
-            flush(1);
-        } else {
-            auto x = geometry_3::plane(points[0], points[1], points[2]);
-            if (x.z != 1.0) {
-                flush(1);
-            } else {
-                // TODO
-            }
-        }
-    }
-*/
+    point = boost::none;
 }
 
-void rs274_arcfit::flush(int n) {
-    while (n-- && !candidate.empty()) {
-        auto& block = candidate[0];
-        std::cout << str(block) << "\n";
-        candidate.erase(begin(candidate));
+void rs274_arcfit::reset() {
+    state = State::indeterminate;
+}
+void rs274_arcfit::push(const block_point& point) {
+    switch (state)
+    {
+        case State::indeterminate:
+        {
+            arc.points.push_back(point);
+
+            if (arc.points.size() < 3)
+                return;
+std::cout << "n " << __LINE__ << "\n";
+            auto p0 = arc.points[0].p;
+            auto p1 = arc.points[1].p;
+            auto p2 = arc.points[2].p;
+
+            if (collinear(p0, p1, p2, 1e-6))
+                return flush();
+
+std::cout << "n " << __LINE__ << "\n";
+            // TODO handle XZ and YZ planes
+            // remembering to map to xy when calculating circle center!
+            arc.plane = geometry_3::plane(p0, p1, p2);
+            if (arc.plane.z != 1.0)
+                return flush();
+
+std::cout << "n " << __LINE__ << "\n";
+            auto center = circle_center(p0, p1, p2);
+            if (!center)
+                return flush();
+            arc.center = *center;
+
+std::cout << "n " << __LINE__ << "\n";
+            arc.r = std::abs(distance(p0, arc.center));
+            std::cout << "radius: " << arc.r << "\n";
+            std::cout << "ch: " << chord_height(p0, p1, arc.r) << "\n";
+
+            if (chord_height(p0, p1, arc.r) > arc.max_deviation)
+                return flush();
+std::cout << "n " << __LINE__ << "\n";
+            if (chord_height(p1, p2, arc.r) > arc.max_deviation)
+                return flush();
+std::cout << "n " << __LINE__ << "\n";
+
+            // need to identify direction, and initial theta
+            auto t0 = std::atan((p0.y - arc.center.y) / (p0.x - arc.center.x));
+            auto t1 = std::atan((p1.y - arc.center.y) / (p1.x - arc.center.x));
+            std::cout << "t0: " << t0 << " t1 " << t1 << "\n";
+
+            arc.dir = boost::math::sign(t0 - t1);
+            std::cout << "dir: " << arc.dir << "\n";
+
+            state = State::collecting_points;
+            break;
+        }
+        case State::collecting_points:
+        {
+            auto pn = arc.points.back().p;
+
+            auto r = std::abs(distance(pn, arc.center));
+            std::cout << "r: " << r << " arc.r " << arc.r << "\n";
+            if (std::abs(arc.r - r) > arc.point_deviation)
+                flush();
+            arc.points.push_back(point);
+
+            break;
+        }
+    }
+}
+void rs274_arcfit::flush(bool all) {
+    switch (state)
+    {
+        case State::indeterminate:
+        {
+            while (!arc.points.empty()) {
+                auto& block = arc.points[0].block;
+                std::cout << str(block) << "\n";
+                arc.points.erase(begin(arc.points));
+
+                if (!all) break;
+            }
+            break;
+        }
+        case State::collecting_points:
+        {
+            if (arc.points.size() > 3) {
+                auto p0 = arc.points[0].p;
+                auto p1 = arc.points[arc.points.size()-1].p;
+
+                std::cout << "arc p0 " << p0.x << " " << p0.y << "\n";
+                std::cout << "    p1 " << p1.x << " " << p1.y << "\n";
+                std::cout << "    pc " << arc.center.x << " " << arc.center.y << "\n";
+                std::cout << "   dir " << arc.dir << "\n";
+                std::cout << "     n " << arc.points.size() << "\n";
+                arc.points.clear();
+                state = State::indeterminate;
+
+            }
+            return flush(all);
+            break;
+        }
     }
 }
 
 rs274_arcfit::rs274_arcfit()
  : rs274_base() {
+     reset();
 }
 
