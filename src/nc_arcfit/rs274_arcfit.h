@@ -43,14 +43,19 @@ private:
         indeterminate,
         collecting_points
     } state;
-    struct {
+    struct Arc {
         std::vector<block_point> points;
         geometry_3::vector_3 plane;
         double r;
         geometry_3::point_3 center;
         int dir;
-        double max_deviation = 0.1;
-        double point_deviation = 0.1;
+        double chord_height_tolerance = 1.0;
+        double point_deviation = 1.0;
+        double planar_tolerance = 1e-9;
+        enum {
+            radiusDelta,
+            chordHeight
+        } minimise = radiusDelta;
     } arc;
     void reset();
     void push(const block_point& point);

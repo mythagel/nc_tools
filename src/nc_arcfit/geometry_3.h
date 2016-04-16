@@ -25,6 +25,7 @@
 #ifndef GEOMETRY_3_H_
 #define GEOMETRY_3_H_
 #include <boost/optional.hpp>
+#include <iostream>
 
 namespace geometry_3 {
 
@@ -61,6 +62,11 @@ vector_3 plane(const point_3& a, const point_3& b, const point_3& c);
 double chord_height(const point_3& a, const point_3& b, double r);
 
 boost::optional<point_3> circle_center(point_3 p0, point_3 p1, point_3 p2);
+
+inline std::ostream& operator<<(std::ostream& os, const point_3& p) {
+    os << "{" << p.x << "," << p.y << "," << p.z << "}";
+    return os;
+}
 
 }
 

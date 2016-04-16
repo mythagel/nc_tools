@@ -26,6 +26,8 @@
 #include <iostream>
 #include "Units.h"
 #include <boost/math/special_functions/sign.hpp>
+#include "../fold_adjacent.h"
+#include <algorithm>
 
 namespace {
 geometry_3::point_3 to_point_3(const cxxcam::Position& pos) {
@@ -89,6 +91,10 @@ void rs274_arcfit::block_end(const block_t& block) {
 void rs274_arcfit::reset() {
     state = State::indeterminate;
 }
+template <typename T>
+bool equal(T a, T b, T tolerance) {
+    return std::abs(b-a) < tolerance;
+}
 void rs274_arcfit::push(const block_point& point) {
     switch (state)
     {
@@ -98,60 +104,126 @@ void rs274_arcfit::push(const block_point& point) {
 
             if (arc.points.size() < 3)
                 return;
-std::cout << "n " << __LINE__ << "\n";
+            std::cerr << "\n";
+            std::cerr << "\n";
             auto p0 = arc.points[0].p;
             auto p1 = arc.points[1].p;
             auto p2 = arc.points[2].p;
+std::cerr << "p0 " << p0 << " p1 " << p1 << " p2 " << p2 << "\n";
 
             if (collinear(p0, p1, p2, 1e-6))
                 return flush();
 
-std::cout << "n " << __LINE__ << "\n";
             // TODO handle XZ and YZ planes
             // remembering to map to xy when calculating circle center!
             arc.plane = geometry_3::plane(p0, p1, p2);
-            if (arc.plane.z != 1.0)
+std::cerr << "pl " << arc.plane.x << " " << arc.plane.y << " " << arc.plane.z << "\n";
+            if (! equal(std::abs(arc.plane.z), 1.0, arc.planar_tolerance))
                 return flush();
 
-std::cout << "n " << __LINE__ << "\n";
             auto center = circle_center(p0, p1, p2);
+std::cerr << "center " << center->x << " " << center->y << "\n";
             if (!center)
                 return flush();
             arc.center = *center;
 
-std::cout << "n " << __LINE__ << "\n";
+std::cerr << "p0 " << p0.x << " " << p0.y << "\n";
+std::cerr << "p1 " << arc.center.x << " " << arc.center.y << "\n";
             arc.r = std::abs(distance(p0, arc.center));
-            std::cout << "radius: " << arc.r << "\n";
-            std::cout << "ch: " << chord_height(p0, p1, arc.r) << "\n";
+            std::cerr << "radius: " << arc.r << "\n";
 
-            if (chord_height(p0, p1, arc.r) > arc.max_deviation)
+            auto h0 = chord_height(p0, p1, arc.r);
+            auto h1 = chord_height(p1, p2, arc.r);
+            std::cerr << "h0: " << h0 << " h1 " << h1 << "\n";
+            if (h0 > arc.chord_height_tolerance || h1 > arc.chord_height_tolerance)
                 return flush();
-std::cout << "n " << __LINE__ << "\n";
-            if (chord_height(p1, p2, arc.r) > arc.max_deviation)
-                return flush();
-std::cout << "n " << __LINE__ << "\n";
 
             // need to identify direction, and initial theta
             auto t0 = std::atan((p0.y - arc.center.y) / (p0.x - arc.center.x));
             auto t1 = std::atan((p1.y - arc.center.y) / (p1.x - arc.center.x));
-            std::cout << "t0: " << t0 << " t1 " << t1 << "\n";
+            std::cerr << "t0: " << t0 << " t1 " << t1 << "\n";
 
             arc.dir = boost::math::sign(t0 - t1);
-            std::cout << "dir: " << arc.dir << "\n";
+            std::cerr << "dir: " << arc.dir << "\n";
 
             state = State::collecting_points;
             break;
         }
         case State::collecting_points:
         {
-            auto pn = arc.points.back().p;
+            std::cerr << "\n";
+            auto radius_delta_sum = [](const std::vector<block_point>& points, geometry_3::point_3 center) {
+                double sum = 0;
+                double radius = 0;
+                for (auto& point : points) {
+                    auto r = std::abs(distance(point.p, center));
+                    if (radius == 0) radius = r;
+                    sum += std::abs(r - radius);
+                }
+                return sum;
+            };
+            auto chord_height_sum = [](const std::vector<block_point>& points, double r) {
+                std::vector<double> chord_heights;
+                fold_adjacent(std::begin(points), std::end(points), std::back_inserter(chord_heights), 
+                        [&](const block_point& bp0, const block_point& bp1) {
+                            return chord_height(bp0.p, bp1.p, r);
+                        });
+                return std::accumulate(begin(chord_heights), end(chord_heights), 0.0);
+            };
+            auto pn_1 = arc.points.back().p;
+            auto pn = point.p;
+
+            {
+                auto center = circle_center(arc.points[0].p, arc.points[arc.points.size()/2].p, arc.points[arc.points.size()-1].p);
+                auto dr0 = radius_delta_sum(arc.points, arc.center);
+                auto dr1 = radius_delta_sum(arc.points, *center);
+
+                auto r0 = std::abs(distance(pn, arc.center));
+                auto r1 = std::abs(distance(pn, *center));
+
+                auto ch0 = chord_height_sum(arc.points, r0);
+                auto ch1 = chord_height_sum(arc.points, r1);
+
+                std::cerr << "r0: " << r0 << " r1 " << r1 << "\n";
+                std::cerr << "dr0: " << dr0 << " dr1 " << dr1 << "\n";
+                std::cerr << "ch0: " << ch0 << " ch1 " << ch1 << "\n";
+                std::cerr << "center2 " << center->x << " " << center->y << "\n";
+
+                if (arc.minimise == Arc::radiusDelta) {
+                    if (dr1 < dr0) {
+                        arc.center = *center;
+                        arc.r = r1;
+                    }
+                } else if (arc.minimise == Arc::chordHeight) {
+                    if (ch1 < ch0) {
+                        arc.center = *center;
+                        arc.r = r1;
+                    }
+                }
+            }
 
             auto r = std::abs(distance(pn, arc.center));
-            std::cout << "r: " << r << " arc.r " << arc.r << "\n";
+            std::cerr << "r: " << r << " arc.r " << arc.r << "\n";
             if (std::abs(arc.r - r) > arc.point_deviation)
                 flush();
-            arc.points.push_back(point);
 
+            // TODO find exact point on arc relative to arc point tolerance
+            
+            auto ch = chord_height(pn_1, pn, arc.r);
+            std::cerr << "ch: " << ch << "\n";
+            if (ch > arc.chord_height_tolerance)
+                return flush();
+
+            auto t0 = std::atan((pn_1.y - arc.center.y) / (pn_1.x - arc.center.x));
+            auto t1 = std::atan((pn.y - arc.center.y) / (pn.x - arc.center.x));
+            std::cerr << "t0: " << t0 << " t1 " << t1 << "\n";
+
+            auto dir = boost::math::sign(t0 - t1);
+            std::cerr << "dir: " << dir << "\n";
+            if (dir != arc.dir)
+                return flush();
+
+            arc.points.push_back(point);
             break;
         }
     }
@@ -173,18 +245,32 @@ void rs274_arcfit::flush(bool all) {
         case State::collecting_points:
         {
             if (arc.points.size() > 3) {
+                block_t block;
+
+                if (arc.dir == 1)
+                    block.g_modes[1] = 20; // G2
+                else
+                    block.g_modes[1] = 30; // G3
+
+
                 auto p0 = arc.points[0].p;
                 auto p1 = arc.points[arc.points.size()-1].p;
 
-                std::cout << "arc p0 " << p0.x << " " << p0.y << "\n";
-                std::cout << "    p1 " << p1.x << " " << p1.y << "\n";
-                std::cout << "    pc " << arc.center.x << " " << arc.center.y << "\n";
-                std::cout << "   dir " << arc.dir << "\n";
-                std::cout << "     n " << arc.points.size() << "\n";
-                arc.points.clear();
-                state = State::indeterminate;
+                block.x = p1.x;
+                block.y = p1.y;
+                block.i = arc.center.x - p1.x;
+                block.j = arc.center.y - p1.y;
+                block.f = _feed_rate;
 
+                std::cerr << "arc p0 " << p0.x << " " << p0.y << "\n";
+                std::cerr << "    p1 " << p1.x << " " << p1.y << "\n";
+                std::cerr << "    pc " << arc.center.x << " " << arc.center.y << "\n";
+                std::cerr << "   dir " << arc.dir << "\n";
+                std::cerr << "     n " << arc.points.size() << "\n";
+                std::cout << str(block) << "\n";
+                arc.points.clear();
             }
+            state = State::indeterminate;
             return flush(all);
             break;
         }

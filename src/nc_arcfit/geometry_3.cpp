@@ -77,6 +77,7 @@ double chord_height(const point_3& a, const point_3& b, double r) {
  * */
 boost::optional<point_3> circle_center(point_3 p0, point_3 p1, point_3 p2) {
     if (collinear(p0, p1, p2)) return {};
+    point_3 center;
 
     auto perpendicular = [](const point_3& p0, const point_3& p1, double tolerance = 1e-9) {
         auto a = p1 - p0;
@@ -93,10 +94,10 @@ boost::optional<point_3> circle_center(point_3 p0, point_3 p1, point_3 p2) {
     auto ma = a.y/a.x;
     auto mb = b.y/b.x;
 
-    auto x = (ma*mb*(p0.y - p2.y) + ma*(p0.x + p1.x) - ma*(p1.x + p2.x)) / (2*(mb-ma));
-    auto ya = (-1.0/mb) * (x - ((p0.x+p1.x)/2.0)) + ((p1.y + p2.y)/2.0);
-
-    return { {x, ya, 0} };
+    center.x = (ma*mb*(p0.y - p2.y) + mb*(p0.x + p1.x) - ma*(p1.x + p2.x)) / (2*(mb-ma));
+    center.y = (-1.0/ma) * (center.x - ((p0.x+p1.x)/2.0)) + ((p0.y + p1.y)/2.0);
+    center.z = p0.z;
+    return center;
 }
 
 }
