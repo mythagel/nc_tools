@@ -26,6 +26,7 @@
 #define GEOMETRY_3_H_
 #include <boost/optional.hpp>
 #include <iostream>
+#include <cmath>
 
 namespace geometry_3 {
 
@@ -38,6 +39,11 @@ struct point_3 {
     double z;
 
     vector_3 operator-(const point_3& p) const;
+};
+
+struct line_3 {
+    point_3 a;
+    point_3 b;
 };
 
 struct vector_3 {
@@ -67,6 +73,12 @@ inline std::ostream& operator<<(std::ostream& os, const point_3& p) {
     os << "{" << p.x << "," << p.y << "," << p.z << "}";
     return os;
 }
+
+inline double theta(const geometry_3::point_3& p, const geometry_3::point_3& center) {
+    auto t = std::atan((p.y - center.y) / (p.x - center.x));
+    if (t < 0) t += 6.28318530718;
+    return t;
+};
 
 }
 

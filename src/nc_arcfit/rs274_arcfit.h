@@ -34,7 +34,7 @@ class rs274_arcfit : public rs274_base
 private:
     struct block_point {
         block_t block;
-        geometry_3::point_3 p;
+        geometry_3::line_3 l;
     };
     boost::optional<block_point> point;
 
@@ -49,8 +49,8 @@ private:
         double r;
         geometry_3::point_3 center;
         int dir;
-        double chord_height_tolerance = 1.0;
-        double point_deviation = 1.0;
+        double chord_height_tolerance = 0.1;
+        double point_deviation = 0.1;
         double planar_tolerance = 1e-9;
         enum {
             radiusDelta,
