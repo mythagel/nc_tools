@@ -87,6 +87,9 @@ void rs274_arcfit::block_end(const block_t& block) {
     }
     point = boost::none;
 }
+void rs274_arcfit::program_end() {
+    flush(true);
+}
 
 void rs274_arcfit::reset() {
     state = State::indeterminate;
@@ -97,7 +100,7 @@ bool equal(T a, T b, T tolerance) {
     return std::abs(b-a) < tolerance;
 }
 void rs274_arcfit::push(const block_point& point) {
-    std::cerr << "\n\npush: " << point.l.b << "\n";
+    std::cerr << "\n\npush: " << point.l.a << '-' << point.l.b << "\n";
     switch (state)
     {
         case State::indeterminate:
@@ -142,8 +145,14 @@ std::cerr << "p1 " << arc.center.x << " " << arc.center.y << "\n";
             auto t0 = theta(p0, arc.center);
             auto t1 = theta(p1, arc.center);
             std::cerr << "t0: " << t0 << " t1 " << t1 << "\n";
+            arc.arc_theta = std::abs(t1 - t0);
 
-            arc.dir = boost::math::sign(t1 - t0);
+            arc.dir = [&] {
+                auto a = p0 - arc.center;
+                auto b = p1 - arc.center;
+                auto dir = boost::math::sign(a.x*b.y - a.y*b.x);
+                return dir;
+            }();
             std::cerr << "dir: " << arc.dir << "\n";
 
             state = State::collecting_points;
@@ -173,6 +182,7 @@ std::cerr << "p1 " << arc.center.x << " " << arc.center.y << "\n";
                 return chs;
             };
 
+            // TODO must be calculated after determining if point is valid on arc
             {
                 auto p0 = arc.points[0].l.a;
                 // ...
@@ -226,13 +236,20 @@ std::cerr << "p1 " << arc.center.x << " " << arc.center.y << "\n";
 
             auto t0 = theta(pn_1, arc.center);
             auto t1 = theta(pn, arc.center);
-            std::cerr << "t0: " << t0 << " t1 " << t1 << "\n";
+            std::cerr << "t0: " << t0 << " t1 " << t1 << " arc_theta: " << arc.arc_theta << "\n";
 
-            auto dir = boost::math::sign(t1 - t0);
+            auto dir = [&] {
+                auto a = pn_1 - arc.center;
+                auto b = pn - arc.center;
+                auto dir = boost::math::sign(a.x*b.y - a.y*b.x);
+                return dir;
+            }();
+
             std::cerr << "dir: " << dir << "\n";
             if (dir != arc.dir)
                 return flush();
 
+            arc.arc_theta += std::abs(t1 - t0);
             arc.points.push_back(point);
             break;
         }

@@ -49,6 +49,9 @@ int main(int argc, char* argv[]) {
                 return status;
         }
 
+        if (arcfit.read("M2") == RS274NGC_OK)
+            arcfit.execute();
+
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";

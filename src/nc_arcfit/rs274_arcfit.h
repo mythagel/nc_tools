@@ -49,6 +49,7 @@ private:
         double r;
         geometry_3::point_3 center;
         int dir;
+        double arc_theta = 0;
         double chord_height_tolerance = 0.1;
         double point_deviation = 0.1;
         double planar_tolerance = 1e-9;
@@ -65,6 +66,7 @@ private:
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
     virtual void block_end(const block_t& block);
+    virtual void program_end();
 
 public:
 	rs274_arcfit();
