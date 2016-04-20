@@ -49,15 +49,18 @@ private:
         double r;
         geometry_3::point_3 center;
         int dir;
-        double arc_theta = 0;
-        double chord_height_tolerance = 0.1;
-        double point_deviation = 0.1;
-        double planar_tolerance = 1e-9;
+        double arc_theta;
+
         enum {
             radiusDelta,
             chordHeight
         } minimise = radiusDelta;
     } arc;
+    double chord_height_tolerance;
+    double point_deviation;
+    double planar_tolerance;
+    double theta_minimum;
+
     void reset();
     void push(const block_point& point);
     void flush(bool all = false);
@@ -69,7 +72,7 @@ private:
     virtual void program_end();
 
 public:
-	rs274_arcfit();
+	rs274_arcfit(double chord_height_tolerance, double point_deviation, double planar_tolerance, double theta_minimum);
 
 	virtual ~rs274_arcfit() = default;
 };

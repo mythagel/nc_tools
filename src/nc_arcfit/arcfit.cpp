@@ -17,6 +17,10 @@ int main(int argc, char* argv[]) {
 
     options.add_options()
         ("help,h", "display this help and exit")
+        ("chord_height,c", po::value<double>()->default_value(0.1), "Chord height tolerance")
+        ("radius_dev,r", po::value<double>()->default_value(0.1), "Radius deviation tolerance")
+        ("planar_dev,p", po::value<double>()->default_value(1e-6), "Planar deviation tolerance")
+        ("theta_min,t", po::value<double>()->default_value(3.14/16.0), "Minimum arc theta")
     ;
 
     try {
@@ -29,7 +33,12 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_arcfit arcfit;
+        double chord_height_tolerance = vm["chord_height"].as<double>();
+        double point_deviation = vm["radius_dev"].as<double>();
+        double planar_tolerance = vm["planar_dev"].as<double>();
+        double theta_minimum = vm["theta_min"].as<double>();
+
+        rs274_arcfit arcfit(chord_height_tolerance, point_deviation, planar_tolerance, theta_minimum);
 
         std::string line;
         while(std::getline(std::cin, line)) {

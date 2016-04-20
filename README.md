@@ -9,6 +9,9 @@ $ cat robot2.ngc | nc_backplot
 
 ![robot backplot](https://raw.github.com/mythagel/backplot/master/robot_backplot.png)
 
+Implemented utilities
+=====================
+
  * [nc_backplot](http://mythagel.github.io/nc_tools/nc_backplot/)
     * display a backplot of the incoming gcode
  * [nc_model](http://mythagel.github.io/nc_tools/nc_model/)
@@ -30,6 +33,8 @@ $ cat robot2.ngc | nc_backplot
     * SVG path data -> gcode converter
  * nc_identity
     * gcode identity transformation - base for new tools
+ * nc_arcfit
+    * recover G2/G3 arcs from linear paths
 
 
 ~~not implemented / not complete~~
@@ -58,7 +63,13 @@ $ cat robot2.ngc | nc_backplot
  * ~~nc_blueprint~~
     * Generate SVG blueprint with 3 ortho + perspective view of gcode / model.
 
+Current major caveat
+====================
+
+Though designed to be agnostic to units, currently many metric-only assumptions are made. Handling of imperial units will require changes to some config / interfaces.
+
 Generators
+==========
 
  * ~~lathe_path~~
     * generate lathe operations for svg path
