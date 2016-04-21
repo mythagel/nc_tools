@@ -33,7 +33,7 @@ Implemented utilities
     * SVG path data -> gcode converter
  * nc_identity
     * gcode identity transformation - base for new tools
- * nc_arcfit
+ * [nc_arcfit](http://mythagel.github.io/nc_tools/nc_arcfit/)
     * recover G2/G3 arcs from linear paths
 
 
