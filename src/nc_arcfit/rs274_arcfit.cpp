@@ -316,6 +316,13 @@ void rs274_arcfit::flush(bool all) {
                 auto p0 = arc.points[0].l.a;
                 auto p1 = arc.points[arc.points.size()-1].l.b;
 
+                // Normalise end point
+                {
+                    auto t1 = theta(p1, arc.center);
+                    p1.x = arc.center.x + (arc.r * std::cos(t1));
+                    p1.y = arc.center.y + (arc.r * std::sin(t1));
+                }
+
                 // TODO use current units & arc incremental / absolute mode
                 block.x = p1.x;
                 block.y = p1.y;
