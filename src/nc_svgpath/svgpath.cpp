@@ -70,11 +70,7 @@ protected:
         pos = bezier_cp = p[3];
         curve_cp = p[2];
 
-        /* 
-         * generate sequence of biarcs based on acceptable max error
-         * ALWAYS generate arcs, use nc_shortlines to generate lines if necessary
-         * */
-        for(float t = 0.0; t < 1.0; t += 0.03) {
+        for(float t = 0.0; t < 1.0; t += 0.0003) {
             auto ab = lerp(p[0], p[1], t);
             auto bc = lerp(p[1], p[2], t);
             auto cd = lerp(p[2], p[3], t);
@@ -101,7 +97,7 @@ protected:
         pos = curve_cp = p[2];
         bezier_cp = p[1];
 
-        for(float t = 0.0; t < 1.0; t += 0.03) {
+        for(float t = 0.0; t < 1.0; t += 0.0003) {
             auto ab = lerp(p[0], p[1], t);
             auto bc = lerp(p[1], p[2], t);
             auto point = lerp(ab, bc, t);
