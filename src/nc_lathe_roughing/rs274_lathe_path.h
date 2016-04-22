@@ -26,7 +26,7 @@
 #define RS274_PATH_H_
 #include "base/rs274_base.h"
 #include "geometry.h"
-#include <vector>
+#include "clipper.hpp"
 
 class rs274_path : public rs274_base
 {
@@ -36,13 +36,23 @@ private:
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
 
-    point_2 start_point_ = {0, 0};
-    std::vector<line_segment_2> path_;
+    struct {
+        double x;
+        double z;
+    } start_point_;
+
+    ClipperLib::Path path_;
 public:
 	rs274_path();
 
-    point_2 start_point() const;
-    std::vector<line_segment_2> path() const;
+    double start_x() const { return start_point_.x; }
+    double start_z() const { return start_point_.z; }
+    ClipperLib::Path path() const;
+
+    ClipperLib::IntPoint scale_point(const cxxcam::math::point_3& p) const;
+    double scale() const {
+        return 10e12;
+    }
 
 	virtual ~rs274_path() = default;
 };

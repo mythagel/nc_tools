@@ -13,6 +13,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
+    ${PROJECT_SOURCE_DIR}/deps/clipper
 )
 
 add_executable(nc_lathe_roughing lathe_roughing.cpp geometry.cpp rs274_lathe_path.cpp ../print_exception.cpp)
@@ -23,4 +24,5 @@ target_link_libraries(nc_lathe_roughing
     rs274ngc
     cxxcam
     nc_base
+    polyclipping
 )

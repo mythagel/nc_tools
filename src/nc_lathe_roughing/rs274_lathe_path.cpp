@@ -23,18 +23,13 @@
  */
 
 #include "rs274_lathe_path.h"
-#include <iostream>
-#include <sstream>
 #include "Path.h"
-#include "../fold_adjacent.h"
 
-point_2 make_point(const cxxcam::math::point_3& p) {
-    using cxxcam::units::length_mm;
-    return {length_mm(p.x).value(), length_mm(p.z).value()};
-}
+using namespace ClipperLib;
 
 void rs274_path::_rapid(const Position& p) {
     using cxxcam::units::length_mm;
+
     if (!path_.empty()) {
         throw std::runtime_error("Rapid within profile disallowed");
     } else {
@@ -44,8 +39,6 @@ void rs274_path::_rapid(const Position& p) {
 }
 
 void rs274_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
-    using cxxcam::units::length_mm;
-
     if (plane.y != 1)
         throw std::runtime_error("Arc must exist in XZ plane");
     if (std::abs(end.y - program_pos.y) > 0)
@@ -56,16 +49,13 @@ void rs274_path::_arc(const Position& end, const Position& center, const cxxcam:
     using namespace cxxcam::path;
 	auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
 
-    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(path_),
-        [this](const cxxcam::path::step& s0, const cxxcam::path::step& s1) -> line_segment_2
-        {
-            return { make_point(s0.position), make_point(s1.position) };
-        });
+    for (auto& step : steps) {
+        auto& p = step.position;
+        path_.push_back(scale_point(p));
+    }
 }
 
 void rs274_path::_linear(const Position& pos) {
-    using cxxcam::units::length_mm;
-
     if (_active_plane != Plane::XZ)
         throw std::runtime_error("Path must be described in XZ plane");
     if (std::abs(pos.y - program_pos.y) > 0)
@@ -73,21 +63,21 @@ void rs274_path::_linear(const Position& pos) {
 
 	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
 
-    fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(path_),
-        [this](const cxxcam::path::step& s0, const cxxcam::path::step& s1) -> line_segment_2
-        {
-            return { make_point(s0.position), make_point(s1.position) };
-        });
+    for (auto& step : steps) {
+        auto& p = step.position;
+        path_.push_back(scale_point(p));
+    }
 }
 
 rs274_path::rs274_path()
  : rs274_base() {
 }
 
-point_2 rs274_path::start_point() const {
-    return start_point_;
+IntPoint rs274_path::scale_point(const cxxcam::math::point_3& p) const {
+    using cxxcam::units::length_mm;
+    return IntPoint(length_mm(p.x).value() * scale(), length_mm(p.z).value() * scale());
 }
 
-std::vector<line_segment_2> rs274_path::path() const {
+Path rs274_path::path() const {
     return path_;
 }
