@@ -33,7 +33,7 @@ void rs274_path::_rapid(const Position& p) {
     if (!path_.empty()) {
         throw std::runtime_error("Rapid within profile disallowed");
     } else {
-        auto pos = convert(p);
+        auto pos = convert(program_pos);
         start_point_ = {length_mm(pos.X).value(), length_mm(pos.Z).value()};
     }
 }

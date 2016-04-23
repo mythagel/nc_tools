@@ -141,8 +141,10 @@ int main(int argc, char* argv[]) {
             return std::abs(b-a) < tolerance;
         };
 
+        std::cerr << "start {" << start_x << ", " << start_z << "}\n";
+
         using namespace cxxcam::units;
-        if (equal(start_x, length_mm(bbox.min.x).value())) {
+        if (equal(start_x, length_mm(bbox.min.x).value(), 0.001)) {
             x = length_mm(bbox.min.x).value();
             x1 = length_mm(bbox.max.x).value();
         } else if (equal(start_x, length_mm(bbox.max.x).value())) {
@@ -153,7 +155,7 @@ int main(int argc, char* argv[]) {
             throw std::runtime_error("Initial X position must be located at min or max profile position");
         }
 
-        if (equal(start_z, length_mm(bbox.min.z).value())) {
+        if (equal(start_z, length_mm(bbox.min.z).value()), 0.001) {
             z0 = length_mm(bbox.min.z).value();
             z1 = length_mm(bbox.max.z).value();
         } else if (equal(start_z, length_mm(bbox.max.z).value())) {
@@ -164,15 +166,15 @@ int main(int argc, char* argv[]) {
         }
 
         // close path
-        path.insert(path.begin(), cl::IntPoint(cl::cInt(x*nc_path.scale()), cl::cInt(z0*nc_path.scale())));
-        path.insert(path.end(), cl::IntPoint(cl::cInt(x*nc_path.scale()), cl::cInt(z1*nc_path.scale())));
+        path.insert(path.begin(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z0*nc_path.scale())));
+        path.insert(path.end(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z1*nc_path.scale())));
 
         auto debug_path = [&](const cl::Path& path) {
-            std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+            std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
             for(auto& p : path) {
-                std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Y" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
+                std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Z" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
             }
-            std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+            std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
             std::cout << "\n";
         };
 
