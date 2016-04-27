@@ -58,9 +58,11 @@ protected:
 
 	double              _spindle_speed;
 	Direction           _spindle_turning;
+    double              _spindle_theta;
 	double              _traverse_rate;
 
     cxxcam::Position convert(const Position& p) const;
+    double spindle_delta_theta(const cxxcam::units::length& motion_length);
 private:
 
 	virtual void offset_origin(const Position& pos);

@@ -111,11 +111,44 @@ cxxcam::Position rs274_base::convert(const Position& p) const
     return pos;
 }
 
+double rs274_base::spindle_delta_theta(const cxxcam::units::length& motion_length)
+{
+    using namespace cxxcam;
+    static const double PI = 3.14159265358979323846;
+    auto feed_rate = [&] {
+        if(_length_unit_type == Units::Metric) {
+            return units::velocity{ _feed_rate * units::millimeters_per_minute };
+        } else {
+            return units::velocity{ _feed_rate * units::inches_per_minute };
+        }
+    }();
+
+    auto time = units::time{ motion_length / feed_rate };
+    auto spindle_rads_s = _spindle_speed * 60 * 2 * PI;
+    switch (_spindle_turning) {
+        case Direction::CounterClockwise:
+            spindle_rads_s *= -1;
+            break;
+        case Direction::Clockwise:
+            spindle_rads_s *= 1;
+            break;
+        case Direction::Stop:
+            spindle_rads_s = 0;
+            break;
+    }
+
+    auto theta = spindle_rads_s * time.value();
+    _spindle_theta += theta;
+    _spindle_theta = std::fmod(_spindle_theta, 2*PI);
+    return theta;
+}
+
 void rs274_base::interp_init()
 {
 	_spindle_speed = 0;
 	_spindle_turning = Direction::Stop;
 	_traverse_rate = 60;
+    _spindle_theta = 0;
 }
 
 void rs274_base::offset_origin(const Position& pos)
