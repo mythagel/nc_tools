@@ -6,7 +6,8 @@
 
 #include <iostream>
 #include <vector>
-#include <string>
+#include <vector>
+#include <map>
 
 #include "Bbox.h"
 #include "Units.h"
@@ -119,17 +120,12 @@ int main(int argc, char* argv[]) {
         std::cerr << "monotonic x: " << monotonic_x << " monotonic z: " << monotonic_z << "\n";
         std::cerr << bbox << "\n";
 
-
-        // determine starting point and direction based on initial position
         /* Find which corner of path tool is positioned at, infer whether
          * motion is in +x or -x and +z or -z
          *
          * calculate number of passes, abs x depth <integer divide> depth of cut gives number of passes
          * abs x depth / number of passes gives exact depth per pass
-         * cast ray at x depth, incremented by depthperpass
-         * if no intersections, move from minz to maxz
-         * otherwise, feed to first intersection, follow path until at x depth again, then feed to next intersection
-         * */
+         */
         double x;
         double x1;
         double z0;
@@ -166,20 +162,24 @@ int main(int argc, char* argv[]) {
         }
 
         // close path
-        path.insert(path.begin(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z0*nc_path.scale())));
-        path.insert(path.end(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z1*nc_path.scale())));
+        auto closed_path = path;
+        closed_path.insert(closed_path.begin(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z0*nc_path.scale())));
+        closed_path.insert(closed_path.end(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z1*nc_path.scale())));
 
-        auto debug_path = [&](const cl::Path& path) {
+        auto debug_path = [&](const cl::Path& path, bool close = true) {
             std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
             for(auto& p : path) {
                 std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Z" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
             }
-            std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+            if (close)
+                std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+            std::cout << "\n";
             std::cout << "\n";
         };
 
         //debug_path(path);
 
+        std::map<unsigned, cl::Paths> paths;
         for (unsigned pass = 0; pass < passes; ++pass) {
             auto sclp = [&](double x, double y) {
                 return cl::IntPoint { cl::cInt(x*nc_path.scale()), cl::cInt(y*nc_path.scale()) };
@@ -192,11 +192,10 @@ int main(int argc, char* argv[]) {
             //debug_path(step);
             cl::Clipper clpr;
             clpr.AddPath(step, cl::ptSubject, true);
-            clpr.AddPath(path, cl::ptClip, true);
+            clpr.AddPath(closed_path, cl::ptClip, true);
             cl::Paths solution;
             clpr.Execute(cl::ctDifference, solution, cl::pftEvenOdd, cl::pftEvenOdd);
-            for (auto& path : solution)
-                debug_path(path);
+            paths[pass] = solution;
 
             // something
             // create closed path from input path
@@ -204,6 +203,10 @@ int main(int argc, char* argv[]) {
 
             x += step_x;
         }
+        for (auto& pass : paths)
+            for (auto& path : pass.second)
+                debug_path(path);
+        debug_path(path, false);
 
     } catch(const po::error& e) {
         print_exception(e);
@@ -215,3 +218,12 @@ int main(int argc, char* argv[]) {
     }
 }
 
+void blah(const std::map<unsigned, cl::Paths>& paths, double scale, unsigned pass, double x0, double x1) {
+    auto path = paths.find(pass);
+    if (path == end(paths)) return;
+    for (auto& cut : path->second) {
+
+        /* for each depth, output this depth then recurse to lower depths (AT THE SPECIFIC X POSITION)
+         * */
+    }
+}
