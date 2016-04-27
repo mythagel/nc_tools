@@ -56,12 +56,19 @@ unsigned int hardware_concurrency() {
 geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_motion);
 std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion);
 
-void rs274_model::_rapid(const Position&) {
+void rs274_model::_rapid(const Position& pos) {
+    using namespace cxxcam;
+
+	auto length = path::length_linear(convert(program_pos), convert(pos));
+    auto spindle_theta = spindle_delta_theta(length);
 }
 
 void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
     using namespace cxxcam;
 	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}, 1).path;
+
+	auto length = path::length_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation));
+    auto spindle_theta = spindle_delta_theta(length);
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
 		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
@@ -76,6 +83,9 @@ void rs274_model::_arc(const Position& end, const Position& center, const cxxcam
 void rs274_model::_linear(const Position& pos) {
     using namespace cxxcam;
 	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+
+	auto length = path::length_linear(convert(program_pos), convert(pos));
+    auto spindle_theta = spindle_delta_theta(length);
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
 		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
