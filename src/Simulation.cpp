@@ -58,6 +58,35 @@ geom::polyhedron_t sweep_tool(geom::polyhedron_t tool, const path::step& s0, con
 	return translate(tool, length_mm(p0.x).value(), length_mm(p0.y).value(), length_mm(p0.z).value());
 }
 
+geom::polyhedron_t sweep_lathe_tool(geom::polyhedron_t tool, const path::step& s0, const path::step& s1, units::plane_angle spindle_theta)
+{
+	using units::length_mm;
+
+	static const math::quaternion_t identity{1,0,0,0};
+
+	const auto& o0 = s0.orientation;
+	const auto& p0 = s0.position;
+	const auto& p1 = s1.position;
+    auto so = identity;
+    so /= math::normalise(math::axis2quat(0, 0, 1, spindle_theta));
+
+	if(o0 != identity)
+		tool = geom::rotate(tool, o0.R_component_1(), o0.R_component_2(), o0.R_component_3(), o0.R_component_4());
+
+	if(distance(p0, p1) > units::length{0.000001 * units::millimeters})
+	{
+		geom::polyline_t path{ { {length_mm(p0.x).value(), length_mm(p0.y).value(), length_mm(p0.z).value()}, 
+								{length_mm(p1.x).value(), length_mm(p1.y).value(), length_mm(p1.z).value()} } };
+		tool = geom::glide(tool, path);
+	}
+    else
+    {
+        tool = translate(tool, length_mm(p0.x).value(), length_mm(p0.y).value(), length_mm(p0.z).value());
+    }
+
+    return geom::rotate(tool, so.R_component_1(), so.R_component_2(), so.R_component_3(), so.R_component_4());
+}
+
 Bbox bounding_box(const std::vector<path::step>& steps)
 {
 	if(steps.empty())

@@ -41,6 +41,7 @@ namespace simulation
  * Sweep the tool along the path given, applying any needed transformations.
  */
 geom::polyhedron_t sweep_tool(geom::polyhedron_t tool, const path::step& s0, const path::step& s1);
+geom::polyhedron_t sweep_lathe_tool(geom::polyhedron_t tool, const path::step& s0, const path::step& s1, units::plane_angle spindle_theta);
 
 // TODO function to iterate path and validate feedrates
 // TODO function to iterate path and calculate time
