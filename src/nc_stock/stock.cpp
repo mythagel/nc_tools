@@ -5,6 +5,7 @@
 #include "print_exception.h"
 #include <vector>
 #include <string>
+#include "../throw_if.h"
 
 namespace po = boost::program_options;
 
@@ -16,12 +17,15 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "display this help and exit")
         ("box", "Box stock shape")
+        ("cylinder", "Cylinder stock shape")
         ("x0,X", po::value<double>()->default_value(0.0), "X0 dimension")
         ("y0,Y", po::value<double>()->default_value(0.0), "Y0 dimension")
         ("z0,Z", po::value<double>()->default_value(0.0), "Z0 dimension")
         ("x1,x", po::value<double>()->required(), "X1 dimension")
         ("y1,y", po::value<double>()->required(), "Y1 dimension")
         ("z1,z", po::value<double>()->required(), "Z1 dimension")
+        ("radius,r", po::value<double>(), "Cylinder radius")
+        ("segments,S", po::value<unsigned>()->default_value(64), "Cylinder segments")
     ;
 
     try {
@@ -41,7 +45,20 @@ int main(int argc, char* argv[]) {
             double x1 = vm["x1"].as<double>();
             double y1 = vm["y1"].as<double>();
             double z1 = vm["z1"].as<double>();
-            auto stock = geom::make_box({x:x0, y:y0, z:z0}, {x:x1, y:y1, z:z1});
+            auto stock = geom::make_box({x0, y0, z0}, {x1, y1, z1});
+            std::cout << geom::format::off << stock;
+        } else if(vm.count("cylinder")) {
+            throw_if(!vm.count("radius"), "radius required for cylinder stock");
+
+            double x0 = vm["x0"].as<double>();
+            double y0 = vm["y0"].as<double>();
+            double z0 = vm["z0"].as<double>();
+            double x1 = vm["x1"].as<double>();
+            double y1 = vm["y1"].as<double>();
+            double z1 = vm["z1"].as<double>();
+            double r = vm["radius"].as<double>();
+            double s = vm["segments"].as<unsigned>();
+            auto stock = geom::make_cone({x0, y0, z0}, {x1, y1, z1}, r, r, s);            
             std::cout << geom::format::off << stock;
         } else {
             std::cerr << "must specify shape\n";
