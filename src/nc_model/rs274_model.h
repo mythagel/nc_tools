@@ -36,11 +36,16 @@ private:
     geom::polyhedron_t _model;
     geom::polyhedron_t _tool;
     std::vector<geom::polyhedron_t> _toolpath;
+    unsigned _steps_per_revolution = 360;
+    bool _lathe = false;
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
 	virtual void tool_change(int slot);
+	virtual void dwell(double seconds);
+
+    void read_machine_type();
 
 public:
 	rs274_model(const std::string& stock_filename);

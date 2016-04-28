@@ -37,6 +37,8 @@
 #include <iterator>
 #include <algorithm>
 
+#include <iostream>
+
 namespace {
 
 unsigned int hardware_concurrency() {
@@ -60,20 +62,32 @@ void rs274_model::_rapid(const Position& pos) {
     using namespace cxxcam;
 
 	auto length = path::length_linear(convert(program_pos), convert(pos));
-    auto spindle_theta = spindle_delta_theta(length);
+    auto spindle_delta = spindle_delta_theta(length);
+    apply_spindle_delta(spindle_delta);
 }
 
 void rs274_model::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
     using namespace cxxcam;
-	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}, 1).path;
 
 	auto length = path::length_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation));
-    auto spindle_theta = spindle_delta_theta(length);
+    auto spindle_theta = _spindle_theta;
+    auto spindle_delta = spindle_delta_theta(length);
+    apply_spindle_delta(spindle_delta);
+    auto spindle_steps = (spindle_delta / (2*PI)) * _steps_per_revolution;
+    auto spindle_step = spindle_delta / spindle_steps;
+
+	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}, _lathe ? spindle_steps : 1).path;
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
-		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		[&](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
 		{
-			return simulation::sweep_tool(_tool, s0, s1);
+            if (_lathe) {
+                auto tp = simulation::sweep_lathe_tool(_tool, s0, s1, units::plane_angle(spindle_theta * units::radians));
+                spindle_theta += spindle_step;
+                return tp;
+            } else {
+                return simulation::sweep_tool(_tool, s0, s1);
+            }
 		});
     if(_toolpath.size() >= 512 * hardware_concurrency())
         _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
@@ -82,15 +96,26 @@ void rs274_model::_arc(const Position& end, const Position& center, const cxxcam
 
 void rs274_model::_linear(const Position& pos) {
     using namespace cxxcam;
-	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
 
 	auto length = path::length_linear(convert(program_pos), convert(pos));
-    auto spindle_theta = spindle_delta_theta(length);
+    auto spindle_theta = _spindle_theta;
+    auto spindle_delta = spindle_delta_theta(length);
+    apply_spindle_delta(spindle_delta);
+    auto spindle_steps = (spindle_delta / (2*PI)) * _steps_per_revolution;
+    auto spindle_step = spindle_delta / spindle_steps;
+
+	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, _lathe ? spindle_steps : -1).path;
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
-		[this](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		[&](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
 		{
-			return simulation::sweep_tool(_tool, s0, s1);
+            if (_lathe) {
+                auto tp = simulation::sweep_lathe_tool(_tool, s0, s1, units::plane_angle(spindle_theta * units::radians));
+                spindle_theta += spindle_step;
+                return tp;
+            } else {
+			    return simulation::sweep_tool(_tool, s0, s1);
+            }
 		});
     if(_toolpath.size() >= 512 * hardware_concurrency())
         _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
@@ -148,10 +173,34 @@ void rs274_model::tool_change(int slot) {
     lua_pop(L, 1);
 }
 
+void rs274_model::dwell(double /*seconds*/) {
+    // TODO update spindle theta based on dwell time
+}
+
+void rs274_model::read_machine_type() {
+    auto& L = config.state();
+
+    lua_getglobal(L, "machine");
+    if (!lua_istable(L, -1)) {
+        lua_pop(L, 1);
+        _lathe = false;
+        return;
+    }
+
+    lua_getfield(L, -1, "type");
+    if(lua_isstring(L, -1))
+        _lathe = std::string(lua_tostring(L, -1)) == "lathe";
+    lua_pop(L, 1);
+
+    lua_pop(L, 1);
+}
+
 rs274_model::rs274_model(const std::string& stock_filename)
  : rs274_base() {
     std::ifstream is(stock_filename);
     throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
+
+    read_machine_type();
 }
 
 std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion) {
@@ -193,6 +242,8 @@ geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_m
 geom::polyhedron_t rs274_model::model() {
     if(!_toolpath.empty()) {
         auto toolpath = parallel_fold_toolpath(_toolpath);
+        if (_lathe)
+        std::cerr << geom::format::off << toolpath;
         _toolpath.clear();
         _model -= toolpath;
     }
