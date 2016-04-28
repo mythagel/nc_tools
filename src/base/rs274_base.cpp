@@ -111,7 +111,7 @@ cxxcam::Position rs274_base::convert(const Position& p) const
     return pos;
 }
 
-double rs274_base::spindle_delta_theta(const cxxcam::units::length& motion_length)
+double rs274_base::spindle_delta_theta(const cxxcam::units::length& motion_length) const
 {
     using namespace cxxcam;
     static const double PI = 3.14159265358979323846;
@@ -138,9 +138,12 @@ double rs274_base::spindle_delta_theta(const cxxcam::units::length& motion_lengt
     }
 
     auto theta = spindle_rads_s * time.value();
-    _spindle_theta += theta;
-    _spindle_theta = std::fmod(_spindle_theta, 2*PI);
     return theta;
+}
+void rs274_base::apply_spindle_delta(double delta_theta)
+{
+    _spindle_theta += delta_theta;
+    _spindle_theta = std::fmod(_spindle_theta, 2*PI);
 }
 
 void rs274_base::interp_init()
