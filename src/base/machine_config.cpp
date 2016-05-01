@@ -64,12 +64,12 @@ namespace machine_config {
 std::string default_machine(nc_config& config) {
     auto& L = config.state();
 
-    lua_getglobal(L, "machine");
+    lua_getglobal(L, "default");
     auto pop_global = make_guard([&]{ lua_pop(L, 1); });
-    throw_if (!lua_istable(L, -1), "machine config missing / incorrect");
+    throw_if (!lua_istable(L, -1), "default config missing / incorrect");
 
-    lua_getfield(L, -1, "default");
-    auto pop_default_field = make_guard([&]{ lua_pop(L, 1); });
+    lua_getfield(L, -1, "machine");
+    auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
     throw_if(!lua_isstring(L, -1), "machine default string missing / incorrect");
 
     return lua_tostring(L, -1);
