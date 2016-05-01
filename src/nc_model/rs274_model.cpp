@@ -36,6 +36,7 @@
 #include <future>
 #include <iterator>
 #include <algorithm>
+#include "base/machine_config.h"
 
 #include <iostream>
 
@@ -123,76 +124,24 @@ void rs274_model::_linear(const Position& pos) {
 /* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
  * */
 void rs274_model::tool_change(int slot) {
-    auto& L = config.state();
+    using namespace machine_config;
 
-    lua_getglobal(L, "tool_table");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        _tool = {};
-        return;
+    if (_lathe) {
+        lathe_tool t;
+        get_tool(config, slot, machine_id, t);
+        // TODO
+    } else {
+        mill_tool t;
+        get_tool(config, slot, machine_id, t);
+        auto shank = geom::make_cone( {0, 0, t.length}, {0, 0, t.flute_length}, t.shank_diameter/2, t.shank_diameter/2, 32);
+        auto flutes = geom::make_cone( {0, 0, t.flute_length}, {0, 0, 0}, t.diameter/2, t.diameter/2, 32);
+        //_tool = shank + flutes;
+        _tool = flutes;
     }
-
-    lua_pushinteger(L, slot);
-    lua_gettable(L, -2);
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 2);
-        _tool = {};
-        return;
-    }
-    
-    double length = 0.0;
-    double diameter = 0.0;
-    double flute_length = 0.0;
-    double shank_diameter = 0.0;
-
-    lua_getfield(L, -1, "length");
-    if(lua_isnumber(L, -1))
-        length = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "diameter");
-    if(lua_isnumber(L, -1))
-        diameter = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "flute_length");
-    if(lua_isnumber(L, -1))
-        flute_length = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "shank_diameter");
-    if(lua_isnumber(L, -1))
-        shank_diameter = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter/2, shank_diameter/2, 32);
-    auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter/2, diameter/2, 32);
-    //_tool = shank + flutes;
-    _tool = flutes;
-
-    lua_pop(L, 1);
 }
 
 void rs274_model::dwell(double /*seconds*/) {
     // TODO update spindle theta based on dwell time
-}
-
-void rs274_model::read_machine_type() {
-    auto& L = config.state();
-
-    lua_getglobal(L, "machine");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        _lathe = false;
-        return;
-    }
-
-    lua_getfield(L, -1, "type");
-    if(lua_isstring(L, -1))
-        _lathe = std::string(lua_tostring(L, -1)) == "lathe";
-    lua_pop(L, 1);
-
-    lua_pop(L, 1);
 }
 
 rs274_model::rs274_model(const std::string& stock_filename)
@@ -200,7 +149,8 @@ rs274_model::rs274_model(const std::string& stock_filename)
     std::ifstream is(stock_filename);
     throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
 
-    read_machine_type();
+    auto type = machine_config::get_machine_type(config, machine_id);
+    _lathe = type == machine_config::machine_type::lathe;
 }
 
 std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion) {

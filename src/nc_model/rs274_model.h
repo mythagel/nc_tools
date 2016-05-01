@@ -45,8 +45,6 @@ private:
 	virtual void tool_change(int slot);
 	virtual void dwell(double seconds);
 
-    void read_machine_type();
-
 public:
 	rs274_model(const std::string& stock_filename);
 

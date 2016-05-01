@@ -28,6 +28,7 @@
 #include <lua.hpp>
 #include "../r6.h"
 #include <sstream>
+#include "machine_config.h"
 
 std::string str(const block_t& block)
 {
@@ -79,9 +80,11 @@ std::string str(const block_t& block)
     return s.str();
 }
 
-rs274_base::rs274_base(const std::string& conf)
- : config(conf)
+rs274_base::rs274_base(const std::string& conf, const std::string& id)
+ : config(conf), machine_id(id)
 {
+    if (machine_id.empty())
+        machine_id = machine_config::default_machine(config);
 	init();
 }
 rs274_base::~rs274_base()
@@ -536,36 +539,27 @@ unsigned int rs274_base::tool_max() const
 }
 Tool rs274_base::tool(int pocket) const
 {
-    auto& L = config.state();
+    using namespace machine_config;
 
-    lua_getglobal(L, "tool_table");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        return {};
+    Tool tool;
+    tool.id = pocket;
+    switch (get_machine_type(config, machine_id)) {
+        case machine_type::mill: {
+            mill_tool t;
+            get_tool(config, pocket, machine_id, t);
+            tool.length = t.length;
+            tool.diameter = t.diameter;
+            break;
+        }
+        case machine_type::lathe: {
+            lathe_tool t;
+            get_tool(config, pocket, machine_id, t);
+            // TODO
+            break;
+        }
     }
 
-    lua_pushinteger(L, pocket);
-    lua_gettable(L, -2);
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 2);
-        return {};
-    }
-    
-    Tool t;
-    t.id = pocket;
-    
-    lua_getfield(L, -1, "length");
-    if(lua_isnumber(L, -1))
-        t.length = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "diameter");
-    if(lua_isnumber(L, -1))
-        t.diameter = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_pop(L, 1);
-    return t;
+    return tool;
 }
 double rs274_base::rapid_rate() const
 {

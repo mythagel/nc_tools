@@ -36,13 +36,14 @@ std::string str(const block_t& block);
 class rs274_base : public rs274ngc
 {
 public:
-	rs274_base(const std::string& conf = {});
+	rs274_base(const std::string& conf = {}, const std::string& id = {});
 	virtual ~rs274_base();
 private:
 	virtual void interp_init();
 
 protected:
     mutable nc_config config;
+    std::string machine_id;
 
 	Plane               _active_plane = Plane::XY;
 	int                 _active_slot = 1;

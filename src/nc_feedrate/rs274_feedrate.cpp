@@ -37,6 +37,7 @@
 #include "geom/query.h"
 #include "geom/translate.h"
 #include <iostream>
+#include "base/machine_config.h"
 
 #include "../r6.h"
 std::ostream& operator<<(std::ostream& os, const geom::query::bbox_3& b) {
@@ -158,55 +159,25 @@ void rs274_feedrate::_linear(const Position& pos) {
 /* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
  * */
 void rs274_feedrate::tool_change(int slot) {
-    auto& L = config.state();
+    using namespace machine_config;
 
-    lua_getglobal(L, "tool_table");
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 1);
-        _tool = {};
-        return;
+    switch (get_machine_type(config, machine_id)) {
+        case machine_type::mill: {
+            mill_tool t;
+            get_tool(config, slot, machine_id, t);
+            auto shank = geom::make_cone( {0, 0, t.length}, {0, 0, t.flute_length}, t.shank_diameter/2, t.shank_diameter/2, 32);
+            auto flutes = geom::make_cone( {0, 0, t.flute_length}, {0, 0, 0}, t.diameter/2, t.diameter/2, 32);
+            _tool = flutes;
+            _tool_shank = shank;
+            break;
+        }
+        case machine_type::lathe: {
+            lathe_tool t;
+            get_tool(config, slot, machine_id, t);
+            // TODO
+            break;
+        }
     }
-
-    lua_pushinteger(L, slot);
-    lua_gettable(L, -2);
-    if (!lua_istable(L, -1)) {
-        lua_pop(L, 2);
-        _tool = {};
-        return;
-    }
-    
-    double length = 0.0;
-    double diameter = 0.0;
-    double flute_length = 0.0;
-    double shank_diameter = 0.0;
-
-    lua_getfield(L, -1, "length");
-    if(lua_isnumber(L, -1))
-        length = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "diameter");
-    if(lua_isnumber(L, -1))
-        diameter = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "flute_length");
-    if(lua_isnumber(L, -1))
-        flute_length = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-    lua_getfield(L, -1, "shank_diameter");
-    if(lua_isnumber(L, -1))
-        shank_diameter = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-
-	auto shank = geom::make_cone( {0, 0, length}, {0, 0, flute_length}, shank_diameter/2, shank_diameter/2, 32);
-    auto flutes = geom::make_cone( {0, 0, flute_length}, {0, 0, 0}, diameter/2, diameter/2, 32);
-
-    _tool = flutes;
-    _tool_shank = shank;
-
-    lua_pop(L, 1);
 }
 
 rs274_feedrate::rs274_feedrate(const std::string& stock_filename)

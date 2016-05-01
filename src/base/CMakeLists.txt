@@ -14,7 +14,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
 )
 
-add_library(nc_base STATIC rs274_base.cpp nc_config.cpp)
+add_library(nc_base STATIC rs274_base.cpp nc_config.cpp machine_config.cpp)
 target_link_libraries(nc_base
     ${LUA_LIBRARIES}
     ${Boost_LIBRARIES}

@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iterator>
 #include "base/nc_config.h"
+#include "base/machine_config.h"
 
 namespace po = boost::program_options;
 
@@ -43,46 +44,38 @@ int main(int argc, char* argv[]) {
         notify(vm);
 
         nc_config config;
+        auto machine_id = machine_config::default_machine(config);
+        auto type = machine_config::get_machine_type(config, machine_id);
 
         std::cout << ";\n";
         for(unsigned slot = 0; slot < 56; ++slot) {
             using namespace cxxcam::gcode;
-            auto& L = config.state();
+            using namespace machine_config;
 
-            lua_getglobal(L, "tool_table");
-            if (!lua_istable(L, -1)) {
-                lua_pop(L, 1);
-                continue;
-            }
-
-            lua_pushinteger(L, slot);
-            lua_gettable(L, -2);
-            if (!lua_istable(L, -1)) {
-                lua_pop(L, 2);
-                continue;
-            }
-            
             Line line;
             line += {Word::T, static_cast<double>(slot)};
             line += {Word::P, static_cast<double>(slot)};
 
-            lua_getfield(L, -1, "diameter");
-            if(lua_isnumber(L, -1))
-                line += {Word::D, lua_tonumber(L, -1)};
-            lua_pop(L, 1);
+            switch (type) {
+                case machine_type::mill: {
+                    mill_tool tool;
+                    if (!get_tool(config, slot, machine_id, tool))
+                        continue;
 
-            lua_getfield(L, -1, "name");
-            if(lua_isstring(L, -1))
-                line.Comment(lua_tostring(L, -1));
-            lua_pop(L, 1);
-
+                    line += {Word::D, tool.diameter};
+                    line.Comment(tool.name);
+                    break;
+                }
+                case machine_type::lathe: {
+                    // TODO
+                    break;
+                }
+            }
 
             std::copy(line.begin(), line.end(), std::ostream_iterator<Word>(std::cout, " "));
             if(!line.Comment().empty())
                 std::cout << "; " << line.Comment();
             std::cout << "\n";
-
-            lua_pop(L, 1);
         }
 
     } catch(const po::error& e) {
