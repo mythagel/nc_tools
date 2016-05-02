@@ -37,6 +37,7 @@ private:
         geometry_3::line_3 l;
     };
     boost::optional<block_point> point;
+    geometry_3::point_3 to_point_3(const cxxcam::Position& pos);
 
     // state machine
     enum class State {

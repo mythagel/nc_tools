@@ -27,12 +27,21 @@
 #include "Units.h"
 #include <boost/math/special_functions/sign.hpp>
 #include <algorithm>
+#include "base/machine_config.h"
 
-namespace {
-geometry_3::point_3 to_point_3(const cxxcam::Position& pos) {
+geometry_3::point_3 rs274_arcfit::to_point_3(const cxxcam::Position& pos) {
     using cxxcam::units::length_mm;
-    return {length_mm(pos.X).value(), length_mm(pos.Y).value(), length_mm(pos.Z).value()};
-}
+    using cxxcam::units::length_inch;
+    using namespace machine_config;
+
+    switch (default_units(config)) {
+        case machine_config::units::metric:
+            return {length_mm(pos.X).value(), length_mm(pos.Y).value(), length_mm(pos.Z).value()};
+        case machine_config::units::imperial:
+            return {length_inch(pos.X).value(), length_inch(pos.Y).value(), length_inch(pos.Z).value()};
+        default:
+            throw std::logic_error("Unhandled units");
+    }
 }
 
 void rs274_arcfit::_rapid(const Position&) {
@@ -323,11 +332,34 @@ void rs274_arcfit::flush(bool all) {
                     p1.y = arc.center.y + (arc.r * std::sin(t1));
                 }
 
-                // TODO use current units & arc incremental / absolute mode
-                block.x = p1.x;
-                block.y = p1.y;
-                block.i = arc.center.x - p0.x;
-                block.j = arc.center.y - p0.y;
+                auto map_units = [&](double value) {
+                    using namespace cxxcam::units;
+                    using namespace machine_config;
+                    length x;
+                    switch (default_units(config)) {
+                        case machine_config::units::metric:
+                            x = length{ value * millimeters };
+                            break;
+                        case machine_config::units::imperial:
+                            x = length{ value * inches };
+                            break;
+                        default:
+                            throw std::logic_error("Unhandled default units");
+                    }
+                    switch (_length_unit_type) {
+                        case Units::Metric:
+                            return length_mm(x).value();
+                        case Units::Imperial:
+                            return length_inch(x).value();
+                        default:
+                            throw std::logic_error("Unhandled nc units");
+                    }
+                };
+                // TODO use current arc incremental / absolute mode
+                block.x = map_units(p1.x);
+                block.y = map_units(p1.y);
+                block.i = map_units(arc.center.x - p0.x);
+                block.j = map_units(arc.center.y - p0.y);
                 block.f = _feed_rate;
 
                 std::cout << str(block) << "\n";
