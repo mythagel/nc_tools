@@ -160,6 +160,17 @@ void rs274_base::interp_init()
 	_spindle_turning = Direction::Stop;
 	_traverse_rate = 60;
     _spindle_theta = 0;
+
+    switch (machine_config::default_units(config)) {
+        case machine_config::units::metric:
+            _length_unit_type = Units::Metric;
+            break;
+        case machine_config::units::imperial:
+            _length_unit_type = Units::Imperial;
+            break;
+        default:
+            throw std::logic_error("Unhandled default units");
+    }
 }
 
 void rs274_base::offset_origin(const Position& pos)
