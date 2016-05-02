@@ -30,13 +30,14 @@
 #include "lua/state.h"
 #include <string>
 #include "nc_config.h"
+#include <boost/program_options.hpp>
 
 std::string str(const block_t& block);
 
 class rs274_base : public rs274ngc
 {
 public:
-	rs274_base(const std::string& conf = {}, const std::string& id = {});
+	rs274_base(boost::program_options::variables_map& vm);
 	virtual ~rs274_base();
 private:
 	virtual void interp_init();

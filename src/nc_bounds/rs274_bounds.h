@@ -40,7 +40,7 @@ private:
     virtual void _linear(const Position& pos);
 
 public:
-	rs274_bounds(bool cut, bool rapid);
+	rs274_bounds(boost::program_options::variables_map& vm, bool cut, bool rapid);
 
     cxxcam::Bbox bounding_box() const;
 

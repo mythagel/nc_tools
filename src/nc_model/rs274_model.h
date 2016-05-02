@@ -46,7 +46,7 @@ private:
 	virtual void dwell(double seconds);
 
 public:
-	rs274_model(const std::string& stock_filename);
+	rs274_model(boost::program_options::variables_map& vm, const std::string& stock_filename);
 
     geom::polyhedron_t model();
 

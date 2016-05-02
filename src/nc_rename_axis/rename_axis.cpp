@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include "print_exception.h"
 #include "../throw_if.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <vector>
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("delete,d", po::value<AxisModification>(), "delete axis [XYZABC]")
@@ -23,6 +25,9 @@ int main(int argc, char* argv[]) {
 
     try {
         auto parsed = po::command_line_parser(args).options(options).run();
+
+        po::variables_map vm;
+        store(parsed, vm);
 
         for (auto& option : parsed.options) {
             if(option.string_key == "help") {
@@ -47,7 +52,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        rs274_rename rename(mods);
+        rs274_rename rename(vm, mods);
 
         std::string line;
         while(std::getline(std::cin, line)) {

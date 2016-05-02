@@ -3,6 +3,7 @@
 #include "print_exception.h"
 #include "../throw_if.h"
 #include "rs274_lathe_path.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <vector>
@@ -69,6 +70,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("stepdown,D", po::value<double>()->required(), "roughing stepdown")
@@ -85,7 +87,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_path nc_path;
+        rs274_path nc_path(vm);
 
         nc_path.read("G18");
         nc_path.execute();

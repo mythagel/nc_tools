@@ -30,6 +30,8 @@
 #include <sstream>
 #include "machine_config.h"
 
+namespace po = boost::program_options;
+
 std::string str(const block_t& block)
 {
     std::ostringstream s;
@@ -80,11 +82,14 @@ std::string str(const block_t& block)
     return s.str();
 }
 
-rs274_base::rs274_base(const std::string& conf, const std::string& id)
- : config(conf), machine_id(id)
+rs274_base::rs274_base(po::variables_map& vm)
+ : config(vm["config"].as<std::string>()), machine_id()
 {
-    if (machine_id.empty())
+    if (vm.count("machine"))
+        machine_id = vm["machine"].as<std::string>();
+    else
         machine_id = machine_config::default_machine(config);
+
 	init();
 }
 rs274_base::~rs274_base()

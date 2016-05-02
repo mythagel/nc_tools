@@ -2,6 +2,7 @@
 #include "rs274ngc_return.hh"
 #include <boost/program_options.hpp>
 #include "print_exception.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <vector>
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("stock", po::value<std::string>()->required(), "Stock model file")
@@ -31,7 +33,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_feedrate rate(vm["stock"].as<std::string>());
+        rs274_feedrate rate(vm, vm["stock"].as<std::string>());
 
         if(vm.count("tool")) {
             std::stringstream s;

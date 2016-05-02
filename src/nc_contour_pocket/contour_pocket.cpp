@@ -5,6 +5,7 @@
 #include "rs274_clipper_path.h"
 #include <iostream>
 #include "clipper.hpp"
+#include "base/machine_config.h"
 #include <algorithm>
 
 
@@ -25,6 +26,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("tool_r,r", po::value<unsigned>()->required(), "Tool radius")
@@ -41,7 +43,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_clipper_path nc_path;
+        rs274_clipper_path nc_path(vm);
         unsigned tool_offset = vm["tool_r"].as<unsigned>() * 2 * vm["stepover"].as<double>();
 
         // TODO read default init line from nc_tools.conf

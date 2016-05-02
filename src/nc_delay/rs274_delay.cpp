@@ -41,7 +41,7 @@ void rs274_delay::_arc(const Position& end, const Position& center, const cxxcam
 void rs274_delay::_linear(const Position& pos) {
 }
 
-rs274_delay::rs274_delay()
- : rs274_base() {
+rs274_delay::rs274_delay(boost::program_options::variables_map& vm)
+ : rs274_base(vm) {
 }
 

@@ -38,7 +38,7 @@ void rs274_identity::_linear(const Position&) {
 void rs274_identity::block_end(const block_t& block) {
     std::cout << str(block) << "\n";
 }
-rs274_identity::rs274_identity()
- : rs274_base() {
+rs274_identity::rs274_identity(boost::program_options::variables_map& vm)
+ : rs274_base(vm) {
 }
 

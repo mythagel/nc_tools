@@ -144,8 +144,8 @@ void rs274_model::dwell(double /*seconds*/) {
     // TODO update spindle theta based on dwell time
 }
 
-rs274_model::rs274_model(const std::string& stock_filename)
- : rs274_base() {
+rs274_model::rs274_model(boost::program_options::variables_map& vm, const std::string& stock_filename)
+ : rs274_base(vm) {
     std::ifstream is(stock_filename);
     throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
 

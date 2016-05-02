@@ -43,7 +43,7 @@ private:
 
     ClipperLib::Path path_;
 public:
-	rs274_path();
+	rs274_path(boost::program_options::variables_map& vm);
 
     double start_x() const { return start_point_.x; }
     double start_z() const { return start_point_.z; }

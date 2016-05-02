@@ -29,6 +29,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
     ;
@@ -43,8 +44,12 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        nc_config config;
-        auto machine_id = machine_config::default_machine(config);
+        nc_config config(vm["config"].as<std::string>());
+        std::string machine_id;
+        if (vm.count("machine"))
+            machine_id = vm["machine"].as<std::string>();
+        else
+            machine_id = machine_config::default_machine(config);
         auto type = machine_config::get_machine_type(config, machine_id);
 
         std::cout << ";\n";

@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include "base/machine_config.h"
 
 namespace po = boost::program_options;
 
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("chord_height,c", po::value<double>()->default_value(0.1), "Chord height tolerance")
@@ -38,7 +40,7 @@ int main(int argc, char* argv[]) {
         double planar_tolerance = vm["planar_dev"].as<double>();
         double theta_minimum = vm["theta_min"].as<double>();
 
-        rs274_arcfit arcfit(chord_height_tolerance, point_deviation, planar_tolerance, theta_minimum);
+        rs274_arcfit arcfit(vm, chord_height_tolerance, point_deviation, planar_tolerance, theta_minimum);
 
         std::string line;
         while(std::getline(std::cin, line)) {

@@ -76,8 +76,8 @@ void rs274_backplot::_linear(const Position& pos)
     pushBackplot(geode, steps, true);
 }
 
-rs274_backplot::rs274_backplot(osg::Group* parent)
- : rs274_base(), geode(new osg::Geode)
+rs274_backplot::rs274_backplot(boost::program_options::variables_map& vm, osg::Group* parent)
+ : rs274_base(vm), geode(new osg::Geode)
 {
     parent->addChild(geode);
 }

@@ -69,8 +69,8 @@ void rs274_bounds::_linear(const Position& pos) {
     }
 }
 
-rs274_bounds::rs274_bounds(bool cut, bool rapid)
- : rs274_base(), first_point(false), track_cut(cut), track_rapid(rapid) {
+rs274_bounds::rs274_bounds(boost::program_options::variables_map& vm, bool cut, bool rapid)
+ : rs274_base(vm), first_point(false), track_cut(cut), track_rapid(rapid) {
 }
 
 cxxcam::Bbox rs274_bounds::bounding_box() const {

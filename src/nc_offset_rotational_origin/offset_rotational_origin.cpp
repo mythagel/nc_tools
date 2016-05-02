@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include "print_exception.h"
 #include "../throw_if.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <vector>
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("from-tool,t", "From - Tool zero as rotational origin")
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
             from = { vm["to-x"].as<double>(), vm["to-y"].as<double>(), vm["to-z"].as<double>() };
 
 
-        rs274_offset offset(from, to);
+        rs274_offset offset(vm, from, to);
 
         std::string line;
         while(std::getline(std::cin, line)) {

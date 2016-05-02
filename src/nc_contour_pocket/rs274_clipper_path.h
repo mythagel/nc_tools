@@ -38,7 +38,7 @@ private:
 
     ClipperLib::Paths path_;
 public:
-	rs274_clipper_path();
+	rs274_clipper_path(boost::program_options::variables_map& vm);
 
     ClipperLib::Paths path() const;
 

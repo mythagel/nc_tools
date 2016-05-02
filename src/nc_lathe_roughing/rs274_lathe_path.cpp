@@ -27,7 +27,7 @@
 
 using namespace ClipperLib;
 
-void rs274_path::_rapid(const Position& p) {
+void rs274_path::_rapid(const Position&) {
     using cxxcam::units::length_mm;
 
     if (!path_.empty()) {
@@ -69,8 +69,8 @@ void rs274_path::_linear(const Position& pos) {
     }
 }
 
-rs274_path::rs274_path()
- : rs274_base() {
+rs274_path::rs274_path(boost::program_options::variables_map& vm)
+ : rs274_base(vm) {
 }
 
 IntPoint rs274_path::scale_point(const cxxcam::math::point_3& p) const {

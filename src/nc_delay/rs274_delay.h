@@ -34,7 +34,7 @@ private:
     virtual void _linear(const Position& pos);
 
 public:
-	rs274_delay();
+	rs274_delay(boost::program_options::variables_map& vm);
 	virtual ~rs274_delay() = default;
 };
 

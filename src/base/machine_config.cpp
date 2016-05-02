@@ -26,6 +26,8 @@
 #include "../throw_if.h"
 #include <cstring>
 
+namespace po = boost::program_options;
+
 namespace {
 
 template <typename Fn>
@@ -61,6 +63,16 @@ void get_machine(lua::state& L, const std::string& name) {
 
 namespace machine_config {
 
+po::options_description base_options() {
+    po::options_description options("base options");
+    options.add_options()
+        ("config", po::value<std::string>()->default_value(""), "Configuration file")
+        ("machine", po::value<std::string>(), "Machine configuration")
+    ;
+
+    return options;
+}
+
 std::string default_machine(nc_config& config) {
     auto& L = config.state();
 
@@ -73,6 +85,25 @@ std::string default_machine(nc_config& config) {
     throw_if(!lua_isstring(L, -1), "machine default string missing / incorrect");
 
     return lua_tostring(L, -1);
+}
+
+units default_units(nc_config& config) {
+    auto& L = config.state();
+
+    lua_getglobal(L, "default");
+    auto pop_global = make_guard([&]{ lua_pop(L, 1); });
+    throw_if (!lua_istable(L, -1), "default config missing / incorrect");
+
+    lua_getfield(L, -1, "units");
+    auto pop_units_field = make_guard([&]{ lua_pop(L, 1); });
+    throw_if(!lua_isstring(L, -1), "units string missing / incorrect");
+
+    if(strcmp(lua_tostring(L, -1), "metric") == 0)
+        return units::metric;
+    if(strcmp(lua_tostring(L, -1), "imperial") == 0)
+        return units::imperial;
+
+    throw std::runtime_error("unrecognised units");
 }
 
 machine_type get_machine_type(nc_config& config, const std::string& machine) {

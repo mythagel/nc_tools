@@ -63,7 +63,7 @@ private:
     virtual void block_end(const block_t& block);
 
 public:
-	rs274_offset(const rotational_origin& from, const rotational_origin& to);
+	rs274_offset(boost::program_options::variables_map& vm, const rotational_origin& from, const rotational_origin& to);
 
 	virtual ~rs274_offset() = default;
 };

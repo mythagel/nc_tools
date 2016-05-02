@@ -69,7 +69,7 @@ private:
     virtual void block_end(const block_t& block);
 
 public:
-	rs274_rename(const std::vector<AxisModification>& mods);
+	rs274_rename(boost::program_options::variables_map& vm, const std::vector<AxisModification>& mods);
 
 	virtual ~rs274_rename() = default;
 };

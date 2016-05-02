@@ -70,8 +70,8 @@ void rs274_clipper_path::_linear(const Position& pos) {
     }
 }
 
-rs274_clipper_path::rs274_clipper_path()
- : rs274_base() {
+rs274_clipper_path::rs274_clipper_path(boost::program_options::variables_map& vm)
+ : rs274_base(vm) {
 }
 
 IntPoint rs274_clipper_path::scale_point(const cxxcam::math::point_3& p) const {

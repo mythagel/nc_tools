@@ -26,10 +26,19 @@
 #define MACHINE_CONFIG_H_
 #include <string>
 #include "nc_config.h"
+#include <boost/program_options.hpp>
 
 namespace machine_config {
 
+boost::program_options::options_description base_options();
+
 std::string default_machine(nc_config& config);
+
+enum class units {
+    metric,
+    imperial
+};
+units default_units(nc_config& config);
 
 enum class machine_type {
     mill,

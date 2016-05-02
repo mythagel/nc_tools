@@ -180,8 +180,8 @@ void rs274_feedrate::tool_change(int slot) {
     }
 }
 
-rs274_feedrate::rs274_feedrate(const std::string& stock_filename)
- : rs274_base() {
+rs274_feedrate::rs274_feedrate(boost::program_options::variables_map& vm, const std::string& stock_filename)
+ : rs274_base(vm) {
     std::ifstream is(stock_filename);
     throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
 }

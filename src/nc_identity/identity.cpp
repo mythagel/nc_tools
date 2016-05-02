@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 #include "print_exception.h"
 #include "../throw_if.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <vector>
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
     ;
@@ -29,7 +31,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_identity identity;
+        rs274_identity identity(vm);
 
         std::string line;
         while(std::getline(std::cin, line)) {

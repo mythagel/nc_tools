@@ -136,7 +136,7 @@ void rs274_rename::block_end(const block_t& b) {
 
     std::cout << str(block) << "\n";
 }
-rs274_rename::rs274_rename(const std::vector<AxisModification>& mods)
- : rs274_base(), mods(mods) {
+rs274_rename::rs274_rename(boost::program_options::variables_map& vm, const std::vector<AxisModification>& mods)
+ : rs274_base(vm), mods(mods) {
 }
 

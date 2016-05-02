@@ -37,7 +37,7 @@ private:
     virtual void block_end(const block_t& block);
 
 public:
-	rs274_identity();
+	rs274_identity(boost::program_options::variables_map& vm);
 
 	virtual ~rs274_identity() = default;
 };

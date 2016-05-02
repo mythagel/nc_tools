@@ -15,6 +15,7 @@
 
 #include <boost/program_options.hpp>
 #include "print_exception.h"
+#include "base/machine_config.h"
 
 #include <iostream>
 #include <fstream>
@@ -253,6 +254,7 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
         ("model", po::value<std::string>(), "Model file")
@@ -301,7 +303,7 @@ int main(int argc, char* argv[]) {
             }
         });
 
-        rs274_backplot backplotter{root};
+        rs274_backplot backplotter{vm, root};
 
         auto adapt = [gw](const sf::Event& event) {
             auto eq = gw->getEventQueue();

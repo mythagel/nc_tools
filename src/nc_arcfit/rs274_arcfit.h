@@ -72,7 +72,7 @@ private:
     virtual void program_end();
 
 public:
-	rs274_arcfit(double chord_height_tolerance, double point_deviation, double planar_tolerance, double theta_minimum);
+	rs274_arcfit(boost::program_options::variables_map& vm, double chord_height_tolerance, double point_deviation, double planar_tolerance, double theta_minimum);
 
 	virtual ~rs274_arcfit() = default;
 };

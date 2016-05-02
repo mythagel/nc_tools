@@ -43,7 +43,7 @@ private:
 	virtual void tool_change(int slot);
 
 public:
-	rs274_feedrate(const std::string& stock_filename);
+	rs274_feedrate(boost::program_options::variables_map& vm, const std::string& stock_filename);
 
 	virtual ~rs274_feedrate() = default;
 };

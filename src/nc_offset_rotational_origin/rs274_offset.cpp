@@ -37,7 +37,7 @@ std::string r6(double v) {
     return s;
 }
 
-void rs274_offset::_rapid(const Position& pos) {
+void rs274_offset::_rapid(const Position&) {
 }
 
 void rs274_offset::_arc(const Position&, const Position&, const cxxcam::math::vector_3&, int) {
@@ -47,13 +47,13 @@ void rs274_offset::_arc(const Position&, const Position&, const cxxcam::math::ve
 void rs274_offset::_linear(const Position&) {
 }
 
-void rs274_offset::block_end(const block_t& block) {
+void rs274_offset::block_end(const block_t&) {
     char line[256];
     line_text(line, 256);
     std::cout << line << "\n";
 }
 
-rs274_offset::rs274_offset(const rotational_origin& from, const rotational_origin& to)
- : rs274_base(), from_(from), to_(to) {
+rs274_offset::rs274_offset(boost::program_options::variables_map& vm, const rotational_origin& from, const rotational_origin& to)
+ : rs274_base(vm), from_(from), to_(to) {
 }
 

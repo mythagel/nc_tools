@@ -340,8 +340,8 @@ void rs274_arcfit::flush(bool all) {
     }
 }
 
-rs274_arcfit::rs274_arcfit(double chord_height_tolerance, double point_deviation, double planar_tolerance, double theta_minimum)
- : rs274_base(), chord_height_tolerance(chord_height_tolerance), point_deviation(point_deviation), planar_tolerance(planar_tolerance), theta_minimum(theta_minimum) {
+rs274_arcfit::rs274_arcfit(boost::program_options::variables_map& vm, double chord_height_tolerance, double point_deviation, double planar_tolerance, double theta_minimum)
+ : rs274_base(vm), chord_height_tolerance(chord_height_tolerance), point_deviation(point_deviation), planar_tolerance(planar_tolerance), theta_minimum(theta_minimum) {
      reset();
 }
 
