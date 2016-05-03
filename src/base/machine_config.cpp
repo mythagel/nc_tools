@@ -105,6 +105,28 @@ units default_units(nc_config& config) {
 
     throw std::runtime_error("unrecognised units");
 }
+units machine_units(nc_config& config, const std::string& machine) {
+    auto& L = config.state();
+
+    get_machine(L, machine);
+    auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
+
+    lua_getfield(L, -1, "units");
+    auto pop_units_field = make_guard([&]{ lua_pop(L, 1); });
+
+    if (!lua_isnil(L, -1)) {
+        throw_if(!lua_isstring(L, -1), "units string missing / incorrect");
+
+        if(strcmp(lua_tostring(L, -1), "metric") == 0)
+            return units::metric;
+        if(strcmp(lua_tostring(L, -1), "imperial") == 0)
+            return units::imperial;
+
+        throw std::runtime_error("unrecognised machine type");
+    } else {
+        return default_units(config);
+    }
+}
 
 machine_type get_machine_type(nc_config& config, const std::string& machine) {
     auto& L = config.state();

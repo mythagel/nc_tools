@@ -39,6 +39,7 @@ enum class units {
     imperial
 };
 units default_units(nc_config& config);
+units machine_units(nc_config& config, const std::string& machine);
 
 enum class machine_type {
     mill,

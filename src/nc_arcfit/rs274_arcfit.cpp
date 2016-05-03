@@ -34,7 +34,7 @@ geometry_3::point_3 rs274_arcfit::to_point_3(const cxxcam::Position& pos) {
     using cxxcam::units::length_inch;
     using namespace machine_config;
 
-    switch (default_units(config)) {
+    switch (machine_units(config, machine_id)) {
         case machine_config::units::metric:
             return {length_mm(pos.X).value(), length_mm(pos.Y).value(), length_mm(pos.Z).value()};
         case machine_config::units::imperial:
@@ -336,7 +336,7 @@ void rs274_arcfit::flush(bool all) {
                     using namespace cxxcam::units;
                     using namespace machine_config;
                     length x;
-                    switch (default_units(config)) {
+                    switch (machine_units(config, machine_id)) {
                         case machine_config::units::metric:
                             x = length{ value * millimeters };
                             break;

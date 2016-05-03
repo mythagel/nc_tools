@@ -16,6 +16,9 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
+    /* TODO values used as defaults should have explicit units.
+     * values passed as parameters should use named units
+     * */
     options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")

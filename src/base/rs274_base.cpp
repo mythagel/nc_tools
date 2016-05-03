@@ -161,7 +161,7 @@ void rs274_base::interp_init()
 	_traverse_rate = 60;
     _spindle_theta = 0;
 
-    switch (machine_config::default_units(config)) {
+    switch (machine_config::machine_units(config, machine_id)) {
         case machine_config::units::metric:
             _length_unit_type = Units::Metric;
             break;
