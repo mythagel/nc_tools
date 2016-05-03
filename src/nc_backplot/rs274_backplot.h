@@ -27,11 +27,13 @@
 #include "base/rs274_base.h"
 #include <osg/Geode>
 #include "Position.h"
+#include "Path.h"
 
 class rs274_backplot : public rs274_base
 {
 private:
     osg::Geode* geode;
+    void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool cut);
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);

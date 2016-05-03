@@ -25,19 +25,31 @@
 #include "rs274_backplot.h"
 #include <cmath>
 #include <cstring>
-#include "Path.h"
 #include <osg/Geometry>
+#include "base/machine_config.h"
 
-void pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool cut) {
-    using cxxcam::units::length_mm;
+void rs274_backplot::pushBackplot(osg::Geode* geode, const std::vector<cxxcam::path::step>& steps, bool cut) {
     auto geom = new osg::Geometry();
+    auto units = machine_config::machine_units(config, machine_id);
 
     auto vertices = new osg::Vec3Array;
     vertices->reserve(steps.size());
     for(auto& step : steps)
     {
+        using cxxcam::units::length_mm;
+        using cxxcam::units::length_inch;
         auto& p = step.position;
-        vertices->push_back({static_cast<float>(length_mm{p.x}.value()), static_cast<float>(length_mm{p.y}.value()), static_cast<float>(length_mm{p.z}.value())});
+
+        switch (units) {
+            case machine_config::units::metric:
+                vertices->push_back({static_cast<float>(length_mm{p.x}.value()), static_cast<float>(length_mm{p.y}.value()), static_cast<float>(length_mm{p.z}.value())});
+                break;
+            case machine_config::units::imperial:
+                vertices->push_back({static_cast<float>(length_inch{p.x}.value()), static_cast<float>(length_inch{p.y}.value()), static_cast<float>(length_inch{p.z}.value())});
+                break;
+            default:
+                throw std::logic_error("Unhandled units");
+        }
     }
     geom->setVertexArray(vertices);
 
