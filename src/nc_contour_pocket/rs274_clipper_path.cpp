@@ -24,6 +24,7 @@
 
 #include "rs274_clipper_path.h"
 #include "Path.h"
+#include "base/machine_config.h"
 
 using namespace ClipperLib;
 
@@ -33,8 +34,6 @@ void rs274_clipper_path::_rapid(const Position&) {
         path_.emplace_back();
 }
 void rs274_clipper_path::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
-    using cxxcam::units::length_mm;
-
     if (plane.z != 1)
         throw std::runtime_error("Arc must exist in XY plane");
     if (std::abs(end.z - program_pos.z) > 0)
@@ -53,8 +52,6 @@ void rs274_clipper_path::_arc(const Position& end, const Position& center, const
 
 
 void rs274_clipper_path::_linear(const Position& pos) {
-    using cxxcam::units::length_mm;
-
     if (_active_plane != Plane::XY)
         throw std::runtime_error("Path must be described in XY plane");
     if (std::abs(pos.z - program_pos.z) > 0)
@@ -76,7 +73,16 @@ rs274_clipper_path::rs274_clipper_path(boost::program_options::variables_map& vm
 
 IntPoint rs274_clipper_path::scale_point(const cxxcam::math::point_3& p) const {
     using cxxcam::units::length_mm;
-    return IntPoint(length_mm(p.x).value() * scale(), length_mm(p.y).value() * scale());
+    using cxxcam::units::length_inch;
+
+    switch (machine_config::machine_units(config, machine_id)) {
+        case machine_config::units::metric:
+            return IntPoint(length_mm(p.x).value() * scale(), length_mm(p.y).value() * scale());
+        case machine_config::units::imperial:
+            return IntPoint(length_inch(p.x).value() * scale(), length_inch(p.y).value() * scale());
+        default:
+            throw std::logic_error("Unhandled units");
+    }
 }
 
 Paths rs274_clipper_path::path() const {
