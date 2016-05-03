@@ -21,6 +21,11 @@ nc_arcfit:
                                         Planar deviation tolerance
   -t [ --theta_min ] arg (=0.19625000000000001)
                                         Minimum arc theta
+
+base options:
+  --config arg                          Configuration file
+  --machine arg                         Machine configuration
+
 ```
 
 ```

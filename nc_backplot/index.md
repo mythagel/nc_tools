@@ -11,8 +11,12 @@ Optionally allows an .off format 3d model to be overlaid in the view window
 ```
 $ nc_backplot --help
 nc_backplot:
-  -h [ --help ]         display this help and exit
-  --model arg           Model file
+  -h [ --help ]          display this help and exit
+  --model arg            Model file
+
+base options:
+  --config arg           Configuration file
+  --machine arg          Machine configuration
 ```
 
 `$ nc_backplot --model motor_mount.op0.off < motor_mount.op0.ngc`

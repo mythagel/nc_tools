@@ -9,9 +9,13 @@ Create a 3d model representing the GCode toolpath removed from a stock model.
 ```
 $ nc_model --help
 nc_model:
-  -h [ --help ]         display this help and exit
-  --stock arg           Stock model file
-  --tool arg            Default tool
+  -h [ --help ]          display this help and exit
+  --stock arg            Stock model file
+  --tool arg             Default tool
+
+base options:
+  --config arg           Configuration file
+  --machine arg          Machine configuration
 ```
 
 

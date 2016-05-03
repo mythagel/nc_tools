@@ -9,8 +9,14 @@ Generate parallel contour offset toolpaths from an input (closed) path.
 ```
 $ nc_contour_pocket --help
 nc_contour_pocket:
-  -h [ --help ]         display this help and exit
-  -r [ --tool_r ] arg   Tool radius
+  -h [ --help ]                         display this help and exit
+  -r [ --tool_r ] arg                   Tool radius
+  -s [ --stepover ] arg (=0.90000000000000002)
+                                        Tool stepover 0.0 - 1.0
+
+base options:
+  --config arg                          Configuration file
+  --machine arg                         Machine configuration
 
 ```
 

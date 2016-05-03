@@ -10,11 +10,23 @@ nc_tools.conf
 Project specific configuration shared by all nc_tools. Searched in current working directory and parent paths, allowing
 the configuration to be project specific.
 
+defaults
+--------
+
+```
+default = {
+    "machine" = "name",
+    "units" = "metric"
+}
+```
+
 machine
 -------
 
 ```
-machine = {
+machine = {}
+machine.name = {
+    units = "metric"
     type = "mill",
     spindle = {"100-1000", "2000-6000"}
 }
@@ -24,6 +36,11 @@ machine.type
 
  - "mill" - Milling machine
  - "lathe" - Lathe
+
+ machine.units
+
+ - "metric" - Millimeter
+ - "imperial" - Inch
 
 machine.spindle
 
