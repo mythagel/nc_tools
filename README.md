@@ -63,11 +63,6 @@ Implemented utilities
  * ~~nc_blueprint~~
     * Generate SVG blueprint with 3 ortho + perspective view of gcode / model.
 
-Current major caveat
-====================
-
-Though designed to be agnostic to units, currently many metric-only assumptions are made. Handling of imperial units will require changes to some config / interfaces.
-
 Generators
 ==========
 
