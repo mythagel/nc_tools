@@ -24,17 +24,28 @@
 
 #include "rs274_lathe_path.h"
 #include "Path.h"
+#include "base/machine_config.h"
 
 using namespace ClipperLib;
 
 void rs274_path::_rapid(const Position&) {
-    using cxxcam::units::length_mm;
-
     if (!path_.empty()) {
         throw std::runtime_error("Rapid within profile disallowed");
     } else {
-        auto pos = convert(program_pos);
-        start_point_ = {length_mm(pos.X).value(), length_mm(pos.Z).value()};
+        using cxxcam::units::length_mm;
+        using cxxcam::units::length_inch;
+
+        auto p = convert(program_pos);
+        switch (machine_config::machine_units(config, machine_id)) {
+            case machine_config::units::metric:
+                start_point_ = IntPoint(length_mm(p.X).value() * scale(), length_mm(p.Z).value() * scale());
+                break;
+            case machine_config::units::imperial:
+                start_point_ = IntPoint(length_inch(p.X).value() * scale(), length_inch(p.Z).value() * scale());
+                break;
+            default:
+                throw std::logic_error("Unhandled units");
+        }
     }
 }
 
@@ -75,7 +86,16 @@ rs274_path::rs274_path(boost::program_options::variables_map& vm)
 
 IntPoint rs274_path::scale_point(const cxxcam::math::point_3& p) const {
     using cxxcam::units::length_mm;
-    return IntPoint(length_mm(p.x).value() * scale(), length_mm(p.z).value() * scale());
+    using cxxcam::units::length_inch;
+
+    switch (machine_config::machine_units(config, machine_id)) {
+        case machine_config::units::metric:
+            return IntPoint(length_mm(p.x).value() * scale(), length_mm(p.z).value() * scale());
+        case machine_config::units::imperial:
+            return IntPoint(length_inch(p.x).value() * scale(), length_inch(p.z).value() * scale());
+        default:
+            throw std::logic_error("Unhandled units");
+    }
 }
 
 Path rs274_path::path() const {

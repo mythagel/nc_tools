@@ -36,17 +36,13 @@ private:
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
 
-    struct {
-        double x;
-        double z;
-    } start_point_;
+    ClipperLib::IntPoint start_point_;
 
     ClipperLib::Path path_;
 public:
 	rs274_path(boost::program_options::variables_map& vm);
 
-    double start_x() const { return start_point_.x; }
-    double start_z() const { return start_point_.z; }
+    ClipperLib::IntPoint start() const { return start_point_; }
     ClipperLib::Path path() const;
 
     ClipperLib::IntPoint scale_point(const cxxcam::math::point_3& p) const;
