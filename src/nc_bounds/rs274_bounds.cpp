@@ -63,9 +63,17 @@ void rs274_bounds::_arc(const Position& end, const Position& center, const cxxca
 
 
 void rs274_bounds::_linear(const Position& pos) {
+    using namespace cxxcam::path;
     if (track_cut) {
-        bbox += pos2point(convert(program_pos));
-        bbox += pos2point(convert(pos));
+        auto steps = expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+
+        for (auto& step : steps) {
+            if (!first_point) {
+                bbox.min = bbox.max = step.position;
+                first_point = true;
+            }
+            bbox += step.position;
+        }
     }
 }
 
