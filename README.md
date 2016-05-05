@@ -35,6 +35,8 @@ Implemented utilities
     * gcode identity transformation - base for new tools
  * [nc_arcfit](http://mythagel.github.io/nc_tools/nc_arcfit/)
     * recover G2/G3 arcs from linear paths
+ * nc_delay
+    * delay the output of the gcode based on the machining time option 1x 2x, etc
 
 
 ~~not implemented / not complete~~
@@ -42,16 +44,17 @@ Implemented utilities
  * ~~nc_shortlines~~
     * split incoming gcode into short line segments
     * cli option --arc-only
- * ~~nc_delay~~
-    * delay the output of the gcode based on the machining time option 1x 2x, etc
  * ~~nc_fold_moves~~
     * fold adajacent G00 moves
  * ~~nc_pick~~
     * nc_stop --at-comment blah --at-line 205 --at-tool 3
     * selectively pick gcode from file
     * e.g. within bounding box
- * ~~nc_sim~~
-    * simulated model on display
+ * ~~nc_inspect~~
+    * allow playback of the gcode
+    * feed rate override + pause
+    * seek forward and backward
+    * zoom to section of timeline
  * ~~nc_scale~~
     * scale gcode axes up or down
  * ~~nc_offset_rotational_origin~~
