@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
     options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
+        ("scale,s", po::value<double>()->default_value(1.0), "feed rate scale factor")
     ;
 
     try {
@@ -31,7 +32,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_delay delayer(vm);
+        rs274_delay delayer(vm, vm["scale"].as<double>());
 
         std::string line;
         while(std::getline(std::cin, line)) {

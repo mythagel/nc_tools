@@ -25,23 +25,55 @@
 #include "rs274_delay.h"
 #include <cmath>
 #include <cstring>
-#include "throw_if.h"
-#include "fold_adjacent.h"
 #include <algorithm>
+#include <chrono>
+#include <thread>
+#include "Path.h"
+#include "../throw_if.h"
 
-void rs274_delay::_rapid(const Position& pos) {
-    // calculate duration of movement
-    // distance from program_pos to pos at current rapid_rate()
+double rs274_delay::motion_duration_s(const cxxcam::units::length& motion_length) const {
+    using namespace cxxcam;
+
+    throw_if(_feed_rate == 0, "Zero feed rate");
+
+    auto feed_rate = [&] {
+        if(_length_unit_type == Units::Metric) {
+            return units::velocity{ (_feed_rate*scale) * units::millimeters_per_minute };
+        } else {
+            return units::velocity{ (_feed_rate*scale) * units::inches_per_minute };
+        }
+    }();
+
+    auto time = units::time{ motion_length / feed_rate };
+    // TODO is a static assert that time is represented as seconds necessary?
+    return time.value();
+}
+
+void rs274_delay::_rapid(const Position&) {
+    using namespace cxxcam;
+
+	//auto length = path::length_linear(convert(program_pos), convert(pos));
+    // TODO rapid rate?
 }
 
 void rs274_delay::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
+    using namespace cxxcam;
+
+	auto length = path::length_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation));
+    auto time_delta = std::chrono::duration<double>(motion_duration_s(length));
+    std::this_thread::sleep_for(time_delta);
 }
 
 
 void rs274_delay::_linear(const Position& pos) {
+    using namespace cxxcam;
+
+	auto length = path::length_linear(convert(program_pos), convert(pos));
+    auto time_delta = std::chrono::duration<double>(motion_duration_s(length));
+    std::this_thread::sleep_for(time_delta);
 }
 
-rs274_delay::rs274_delay(boost::program_options::variables_map& vm)
- : rs274_base(vm) {
+rs274_delay::rs274_delay(boost::program_options::variables_map& vm, double scale)
+ : rs274_base(vm), scale(scale) {
 }
 

@@ -29,12 +29,15 @@
 class rs274_delay : public rs274_base
 {
 private:
+    double scale;
+    double motion_duration_s(const cxxcam::units::length& motion_length) const;
+
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
 
 public:
-	rs274_delay(boost::program_options::variables_map& vm);
+	rs274_delay(boost::program_options::variables_map& vm, double scale);
 	virtual ~rs274_delay() = default;
 };
 
