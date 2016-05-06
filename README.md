@@ -37,13 +37,13 @@ Implemented utilities
     * recover G2/G3 arcs from linear paths
  * nc_delay
     * delay the output of the gcode based on the machining time option 1x 2x, etc
+ * nc_shortlines
+    * split incoming gcode into short line segments
+    * ~~cli option --arc-only~~
 
 
 ~~not implemented / not complete~~
 
- * ~~nc_shortlines~~
-    * split incoming gcode into short line segments
-    * cli option --arc-only
  * ~~nc_fold_moves~~
     * fold adajacent G00 moves
  * ~~nc_pick~~
