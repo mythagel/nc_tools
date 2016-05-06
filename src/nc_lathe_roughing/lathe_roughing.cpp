@@ -62,6 +62,51 @@ void monotonic(const cl::Path& path, bool& monotonic_x, bool& monotonic_z) {
     }
 }
 
+cl::Paths overlap_z(const cl::Path& subject, const cl::Paths& candidates) {
+    cl::Paths overlap;
+    auto bbox = bounding_box(subject);
+    for(auto& path : candidates) {
+        auto b = bounding_box(path);
+        if (b.min.Y > bbox.max.Y)
+            continue;
+        if (b.max.Y < bbox.min.Y)
+            continue;
+        overlap.push_back(path);
+    }
+    return overlap;
+}
+void output_path(const cl::Path& path, double scale) {
+    bool close = true;
+
+    std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/scale << " Z" << static_cast<double>(path.begin()->Y)/scale << "\n";
+    for(auto& p : path) {
+        std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/scale << " Z" << static_cast<double>(p.Y)/scale << " F200\n";
+    }
+    if (close)
+        std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/scale << " Z" << static_cast<double>(path.begin()->Y)/scale << "\n";
+    std::cout << "\n";
+}
+void blah(const std::vector<cl::Paths>& levels, double scale, const cl::Path* subject = NULL, unsigned x_level = 0) {
+    if (levels.empty()) return;
+
+    if (!subject) {
+        // first level
+        for (auto& path : levels[x_level])
+            blah(levels, scale, &path, x_level);
+
+    } else {
+        output_path(*subject, scale);
+        if(x_level+1 < levels.size()) {
+            auto& next_level = levels[x_level+1];
+            auto overlap_next = overlap_z(*subject, next_level);
+
+            for (auto& path : overlap_next) {
+                blah(levels, scale, &path, x_level+1);
+            }
+        }
+    }
+}
+
 int main(int argc, char* argv[]) {
     po::options_description options("nc_lathe_roughing");
     std::vector<std::string> args(argv, argv + argc);
@@ -173,9 +218,10 @@ int main(int argc, char* argv[]) {
         }
 
         auto debug_path = [&](const cl::Path& path, bool close = true) {
+            if (path.empty()) return;
             std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
             for(auto& p : path) {
-                std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Z" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
+                std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Z" << static_cast<double>(p.Y)/nc_path.scale() << " F200\n";
             }
             if (close)
                 std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Z" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
@@ -183,6 +229,7 @@ int main(int argc, char* argv[]) {
             std::cout << "\n";
         };
 
+        if (false)
         {
             cl::ClipperOffset co;
             co.AddPath(closed_paths[0], cl::jtRound, cl::etClosedPolygon);
@@ -193,7 +240,7 @@ int main(int argc, char* argv[]) {
             std::swap(closed_paths, solution);
         }
 
-        std::map<unsigned, cl::Paths> paths;
+        std::vector<cl::Paths> paths;
         for (unsigned pass = 0; pass < passes; ++pass) {
             auto sclp = [&](double x, double y) {
                 return cl::IntPoint { cl::cInt(x*nc_path.scale()), cl::cInt(y*nc_path.scale()) };
@@ -203,14 +250,19 @@ int main(int argc, char* argv[]) {
             step.push_back(sclp(x, z1));
             step.push_back(sclp(x+step_x, z1));
             step.push_back(sclp(x+step_x, z0));
+
             //debug_path(step);
+
             cl::Clipper clpr;
-            clpr.AddPath(step, cl::ptClip, true);
+            clpr.AddPath(step, cl::ptSubject, true);
             for (auto& path : closed_paths)
-                clpr.AddPath(path, cl::ptSubject, true);
+                clpr.AddPath(path, cl::ptClip, true);
             cl::Paths solution;
             clpr.Execute(cl::ctDifference, solution, cl::pftEvenOdd, cl::pftEvenOdd);
-            paths[pass] = solution;
+            paths.push_back(solution);
+
+            //for (auto& path : solution)
+            //    debug_path(path);
 
             // something
             // create closed path from input path
@@ -218,11 +270,12 @@ int main(int argc, char* argv[]) {
 
             x += step_x;
         }
-        for (auto& pass : paths)
-            for (auto& path : pass.second)
+        blah(paths, nc_path.scale());
+/*        for (auto& pass : paths)
+            for (auto& path : pass)
                 debug_path(path);
         debug_path(path, false);
-
+*/
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";
@@ -233,12 +286,3 @@ int main(int argc, char* argv[]) {
     }
 }
 
-void blah(const std::map<unsigned, cl::Paths>& paths, double scale, unsigned pass, double x0, double x1) {
-    auto path = paths.find(pass);
-    if (path == end(paths)) return;
-    for (auto& cut : path->second) {
-
-        /* for each depth, output this depth then recurse to lower depths (AT THE SPECIFIC X POSITION)
-         * */
-    }
-}
