@@ -75,9 +75,7 @@ cl::Paths overlap_z(const cl::Path& subject, const cl::Paths& candidates) {
     }
     return overlap;
 }
-void output_path(const cl::Path& path, double scale) {
-    bool close = true;
-
+void output_path(const cl::Path& path, double scale, bool close = true) {
     std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/scale << " Z" << static_cast<double>(path.begin()->Y)/scale << "\n";
     for(auto& p : path) {
         std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/scale << " Z" << static_cast<double>(p.Y)/scale << " F200\n";
@@ -210,12 +208,21 @@ int main(int argc, char* argv[]) {
 
         // close path
         cl::Paths closed_paths;
-        {
-            auto closed_path = path;
-            closed_path.insert(closed_path.begin(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z0*nc_path.scale())));
-            closed_path.insert(closed_path.end(), cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z1*nc_path.scale())));
-            closed_paths.push_back(closed_path);
-        }
+        auto close_path = [&](cl::Path path) {
+            auto contains = [&path](const cl::IntPoint& p) {
+                return std::find(begin(path), end(path), p) != end(path);
+            };
+
+            auto p0 = cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z0*nc_path.scale()));
+            auto p1 = cl::IntPoint(cl::cInt(x1*nc_path.scale()), cl::cInt(z1*nc_path.scale()));
+            if (!contains(p0))
+                path.insert(path.begin(), p0);
+            if (!contains(p1))
+                path.insert(path.end(), p1);
+            return path;
+        };
+
+        closed_paths.push_back(close_path(path));
 
         auto debug_path = [&](const cl::Path& path, bool close = true) {
             if (path.empty()) return;
@@ -229,7 +236,7 @@ int main(int argc, char* argv[]) {
             std::cout << "\n";
         };
 
-        if (false)
+        if (true)
         {
             cl::ClipperOffset co;
             co.AddPath(closed_paths[0], cl::jtRound, cl::etClosedPolygon);
@@ -258,8 +265,8 @@ int main(int argc, char* argv[]) {
             for (auto& path : closed_paths)
                 clpr.AddPath(path, cl::ptClip, true);
             cl::Paths solution;
-            clpr.Execute(cl::ctDifference, solution, cl::pftEvenOdd, cl::pftEvenOdd);
-            paths.push_back(solution);
+            clpr.Execute(cl::ctIntersection, solution, cl::pftEvenOdd, cl::pftEvenOdd);
+            paths.insert(paths.begin(), solution);
 
             //for (auto& path : solution)
             //    debug_path(path);
@@ -271,6 +278,7 @@ int main(int argc, char* argv[]) {
             x += step_x;
         }
         blah(paths, nc_path.scale());
+        output_path(path, nc_path.scale(), false);
 /*        for (auto& pass : paths)
             for (auto& path : pass)
                 debug_path(path);
