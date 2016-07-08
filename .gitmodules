@@ -7,3 +7,6 @@
 [submodule "deps/geom"]
 	path = deps/geom
 	url = git@github.com:mythagel/geom.git
+[submodule "deps/svg_path"]
+	path = deps/svg_path
+	url = git@github.com:mythagel/svg_path.git

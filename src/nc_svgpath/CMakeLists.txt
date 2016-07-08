@@ -8,7 +8,7 @@ FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 include_directories(
     ${Boost_INCLUDE_DIRS}
     ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
+    ${PROJECT_SOURCE_DIR}/deps/svg_path/include
 )
 
 add_executable(nc_svgpath svgpath.cpp ../print_exception.cpp)
