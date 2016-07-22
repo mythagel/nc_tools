@@ -58,9 +58,8 @@ nc_config::nc_config(const std::string& conf)
             throw std::runtime_error(ex);
         }
     } catch(const std::exception& ex) {
+        std::cerr << ex.what() << "\n";
         if(!conf.empty())
             throw;
-        std::cerr << ex.what() << "\n";
     }
-
 }
