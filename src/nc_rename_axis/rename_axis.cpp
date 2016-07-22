@@ -29,11 +29,9 @@ int main(int argc, char* argv[]) {
         po::variables_map vm;
         store(parsed, vm);
 
-        for (auto& option : parsed.options) {
-            if(option.string_key == "help") {
-                std::cout << options << "\n";
-                return 0;
-            }
+        if(vm.count("help")) {
+            std::cout << options << "\n";
+            return 0;
         }
 
         std::vector<AxisModification> mods;
