@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     options.add(machine_config::base_options());
     options.add_options()
         ("help,h", "display this help and exit")
-        ("tool_r,r", po::value<unsigned>()->required(), "Tool radius")
+        ("tool_r,r", po::value<double>()->required(), "Tool radius")
         ("stepover,s", po::value<double>()->default_value(0.9), "Tool stepover 0.0 - 1.0")
     ;
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
         notify(vm);
 
         rs274_clipper_path nc_path(vm);
-        unsigned tool_offset = vm["tool_r"].as<unsigned>() * 2 * vm["stepover"].as<double>();
+        double tool_offset = vm["tool_r"].as<double>() * 2 * vm["stepover"].as<double>();
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
