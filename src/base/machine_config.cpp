@@ -78,6 +78,7 @@ std::string default_machine(nc_config& config) {
 
     lua_getglobal(L, "default");
     auto pop_global = make_guard([&]{ lua_pop(L, 1); });
+    if (lua_isnil(L, -1)) return "__default__";
     throw_if (!lua_istable(L, -1), "default config missing / incorrect");
 
     lua_getfield(L, -1, "machine");
@@ -92,6 +93,7 @@ units default_units(nc_config& config) {
 
     lua_getglobal(L, "default");
     auto pop_global = make_guard([&]{ lua_pop(L, 1); });
+    if (lua_isnil(L, -1)) return units::metric;
     throw_if (!lua_istable(L, -1), "default config missing / incorrect");
 
     lua_getfield(L, -1, "units");
@@ -107,6 +109,9 @@ units default_units(nc_config& config) {
 }
 units machine_units(nc_config& config, const std::string& machine) {
     auto& L = config.state();
+
+    if (machine == "__default__")
+        return units::metric;
 
     get_machine(L, machine);
     auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
@@ -131,6 +136,9 @@ units machine_units(nc_config& config, const std::string& machine) {
 machine_type get_machine_type(nc_config& config, const std::string& machine) {
     auto& L = config.state();
 
+    if (machine == "__default__")
+        return machine_type::mill;
+
     get_machine(L, machine);
     auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
 
@@ -149,6 +157,9 @@ machine_type get_machine_type(nc_config& config, const std::string& machine) {
 
 bool get_tool(nc_config& config, unsigned id, const std::string& machine, mill_tool& tool) {
     auto& L = config.state();
+
+    if (machine == "__default__")
+        return false;
 
     get_machine(L, machine);
     auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
