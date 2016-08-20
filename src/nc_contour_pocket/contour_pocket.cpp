@@ -31,6 +31,9 @@ int main(int argc, char* argv[]) {
         ("help,h", "display this help and exit")
         ("tool_r,r", po::value<double>()->required(), "Tool radius")
         ("stepover,s", po::value<double>()->default_value(0.9), "Tool stepover 0.0 - 1.0")
+        ("cut_z,z", po::value<double>()->required(), "Z Cut depth")
+        ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
+        ("retract_z,z", po::value<double>()->default_value(1.0), "Z Tool retract")
     ;
 
     try {
@@ -45,6 +48,9 @@ int main(int argc, char* argv[]) {
 
         rs274_clipper_path nc_path(vm);
         double tool_offset = vm["tool_r"].as<double>() * 2 * vm["stepover"].as<double>();
+        double cut_z = vm["cut_z"].as<double>();
+        double stepdown = vm["stepdown"].as<double>();
+        double retract_z = vm["retract_z"].as<double>();
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
@@ -70,44 +76,59 @@ int main(int argc, char* argv[]) {
 
         auto paths = nc_path.path();
 
-        ClipperOffset co;
-        for (auto& path : paths)
+        const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
+        const double step_z = cut_z / n_steps;
+
+        for (const auto& path : paths) {
+            ClipperOffset co;
             co.AddPath(path, jtRound, etClosedPolygon);
-        co.ArcTolerance = 0.1 * nc_path.scale();
+            co.ArcTolerance = 0.1 * nc_path.scale();
 
-        double offset = 0.0;
-        point_2 current_point = {0, 0};
-        while (true) {
-            Paths solution;
-            co.Execute(solution, offset * nc_path.scale());
+            double z = step_z;
+            for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
+                double offset = 0.0;
+                point_2 current_point = {0, 0};
+                while (true) {
+                    Paths solution;
+                    co.Execute(solution, offset * nc_path.scale());
 
-            auto to_point = [&](const IntPoint& p) -> point_2 {
-                return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
-            };
+                    auto to_point = [&](const IntPoint& p) -> point_2 {
+                        return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
+                    };
 
-            for(auto& path : solution) {
+                    auto retract = [&] {
+                        std::cout << "G00 Z" << retract_z << "\n";
+                    };
+                    auto plunge = [&] {
+                        std::cout << "G01 Z" << z << " F50" << "\n";
+                    };
 
-                // TODO sort subpaths
+                    for(auto& path : solution) {
 
-                auto it_near = std::min_element(begin(path), end(path), 
-                    [&](const IntPoint& l, const IntPoint& r) -> bool {
-                        return std::abs(distance(to_point(l), current_point)) < std::abs(distance(to_point(r), current_point));
-                    });
-                std::rotate(begin(path), it_near, end(path));
+                        auto it_near = std::min_element(begin(path), end(path), 
+                            [&](const IntPoint& l, const IntPoint& r) -> bool {
+                                return std::abs(distance(to_point(l), current_point)) < std::abs(distance(to_point(r), current_point));
+                            });
+                        std::rotate(begin(path), it_near, end(path));
 
-                std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
-                for(auto& p : path) {
-                    std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Y" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
+                        retract();
+                        std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+                        plunge();
+                        for(auto& p : path) {
+                            std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Y" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
+                        }
+                        std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
+                        retract();
+                        std::cout << "\n";
+                        current_point = to_point(*path.begin());
+                    }
+
+                    if(solution.empty())
+                        break;
+
+                    offset -= tool_offset;
                 }
-                std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
-                std::cout << "\n";
-                current_point = to_point(*path.begin());
             }
-
-            if(solution.empty())
-                break;
-
-            offset -= tool_offset;
         }
 
     } catch(const po::error& e) {
