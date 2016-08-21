@@ -7,6 +7,7 @@
 #include "clipper.hpp"
 #include "base/machine_config.h"
 #include <algorithm>
+#include "../r6.h"
 
 
 namespace po = boost::program_options;
@@ -32,6 +33,7 @@ int main(int argc, char* argv[]) {
         ("tool_r,r", po::value<double>()->required(), "Tool radius")
         ("stepover,s", po::value<double>()->default_value(0.9), "Tool stepover 0.0 - 1.0")
         ("cut_z,z", po::value<double>()->required(), "Z Cut depth")
+        ("feedrate,f", po::value<double>()->required(), "Z Cut depth")
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("retract_z,z", po::value<double>()->default_value(1.0), "Z Tool retract")
     ;
@@ -49,6 +51,7 @@ int main(int argc, char* argv[]) {
         rs274_clipper_path nc_path(vm);
         double tool_offset = vm["tool_r"].as<double>() * 2 * vm["stepover"].as<double>();
         double cut_z = vm["cut_z"].as<double>();
+        double feedrate = vm["feedrate"].as<double>();
         double stepdown = vm["stepdown"].as<double>();
         double retract_z = vm["retract_z"].as<double>();
 
@@ -79,6 +82,8 @@ int main(int argc, char* argv[]) {
         const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
         const double step_z = cut_z / n_steps;
 
+        point_2 current_point = {0, 0};
+
         for (const auto& path : paths) {
             ClipperOffset co;
             co.AddPath(path, jtRound, etClosedPolygon);
@@ -86,41 +91,43 @@ int main(int argc, char* argv[]) {
 
             double z = step_z;
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
+
+                bool rapid_to_first = true;
+
                 double offset = 0.0;
-                point_2 current_point = {0, 0};
                 while (true) {
                     Paths solution;
                     co.Execute(solution, offset * nc_path.scale());
 
-                    auto to_point = [&](const IntPoint& p) -> point_2 {
+                    auto unscale_point = [&](const IntPoint& p) -> point_2 {
                         return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
-                    };
-
-                    auto retract = [&] {
-                        std::cout << "G00 Z" << retract_z << "\n";
-                    };
-                    auto plunge = [&] {
-                        std::cout << "G01 Z" << z << " F50" << "\n";
                     };
 
                     for(auto& path : solution) {
 
                         auto it_near = std::min_element(begin(path), end(path), 
                             [&](const IntPoint& l, const IntPoint& r) -> bool {
-                                return std::abs(distance(to_point(l), current_point)) < std::abs(distance(to_point(r), current_point));
+                                return std::abs(distance(unscale_point(l), current_point)) < std::abs(distance(unscale_point(r), current_point));
                             });
                         std::rotate(begin(path), it_near, end(path));
 
-                        retract();
-                        std::cout << std::fixed << "G00 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
-                        plunge();
-                        for(auto& p : path) {
-                            std::cout << std::fixed << "G01 X" << static_cast<double>(p.X)/nc_path.scale() << " Y" << static_cast<double>(p.Y)/nc_path.scale() << " F50\n";
+                        if (rapid_to_first) {
+                            auto p = unscale_point(path.front());
+                            std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                            std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+
+                            rapid_to_first = false;
                         }
-                        std::cout << std::fixed << "G01 X" << static_cast<double>(path.begin()->X)/nc_path.scale() << " Y" << static_cast<double>(path.begin()->Y)/nc_path.scale() << "\n";
-                        retract();
+
+                        // Close path
+                        path.push_back(path.front());
+                        for(auto& point : path) {
+                            auto p = unscale_point(point);
+                            std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                        }
                         std::cout << "\n";
-                        current_point = to_point(*path.begin());
+
+                        current_point = unscale_point(path.front());
                     }
 
                     if(solution.empty())
@@ -128,6 +135,8 @@ int main(int argc, char* argv[]) {
 
                     offset -= tool_offset;
                 }
+
+                std::cout << "G0 Z" << r6(retract_z) << "\n";
             }
         }
 
