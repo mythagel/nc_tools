@@ -83,6 +83,7 @@ int main(int argc, char* argv[]) {
         const double step_z = cut_z / n_steps;
 
         point_2 current_point = {0, 0};
+        std::cout << "G0 Z" << r6(retract_z) << "\n";
 
         for (const auto& path : paths) {
             ClipperOffset co;
