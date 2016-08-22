@@ -25,11 +25,14 @@
 #ifndef RS274_DELAY_H_
 #define RS274_DELAY_H_
 #include "base/rs274_base.h"
+#include <chrono>
 
 class rs274_delay : public rs274_base
 {
 private:
     double scale;
+    bool measure_only;
+    std::chrono::duration<double> duration;
     double motion_duration_s(const cxxcam::units::length& motion_length) const;
 
     virtual void _rapid(const Position& pos);
@@ -37,7 +40,8 @@ private:
     virtual void _linear(const Position& pos);
 
 public:
-	rs274_delay(boost::program_options::variables_map& vm, double scale);
+	rs274_delay(boost::program_options::variables_map& vm, double scale, bool measure_only);
+    std::chrono::duration<double> cut_duration();
 	virtual ~rs274_delay() = default;
 };
 

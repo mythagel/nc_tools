@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "display this help and exit")
         ("scale,s", po::value<double>()->default_value(1.0), "feed rate scale factor")
+        ("measure,m", "measure only")
     ;
 
     try {
@@ -32,7 +33,7 @@ int main(int argc, char* argv[]) {
         }
         notify(vm);
 
-        rs274_delay delayer(vm, vm["scale"].as<double>());
+        rs274_delay delayer(vm, vm["scale"].as<double>(), vm.count("measure"));
 
         std::string line;
         while(std::getline(std::cin, line)) {
@@ -52,6 +53,18 @@ int main(int argc, char* argv[]) {
                 return status;
             std::cout << line << "\n";
         }
+
+        auto duration = delayer.cut_duration();
+        auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+        auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration - hours);
+        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration - (hours + minutes));
+        auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(duration - (hours + minutes + seconds));
+        if (hours.count() > 0) std::cerr << hours.count() << " h ";
+        if (minutes.count() > 0) std::cerr << minutes.count() << " m ";
+        if (seconds.count() > 0) std::cerr << seconds.count() << " s ";
+        if (milliseconds.count() > 0) std::cerr << milliseconds.count() << " ms ";
+        std::cerr << "\n";
+
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";

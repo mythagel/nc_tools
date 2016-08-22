@@ -61,7 +61,9 @@ void rs274_delay::_arc(const Position& end, const Position& center, const cxxcam
 
 	auto length = path::length_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation));
     auto time_delta = std::chrono::duration<double>(motion_duration_s(length));
-    std::this_thread::sleep_for(time_delta);
+    duration += time_delta;
+    if (!measure_only)
+        std::this_thread::sleep_for(time_delta);
 }
 
 
@@ -70,10 +72,15 @@ void rs274_delay::_linear(const Position& pos) {
 
 	auto length = path::length_linear(convert(program_pos), convert(pos));
     auto time_delta = std::chrono::duration<double>(motion_duration_s(length));
-    std::this_thread::sleep_for(time_delta);
+    duration += time_delta;
+    if (!measure_only)
+        std::this_thread::sleep_for(time_delta);
 }
 
-rs274_delay::rs274_delay(boost::program_options::variables_map& vm, double scale)
- : rs274_base(vm), scale(scale) {
+rs274_delay::rs274_delay(boost::program_options::variables_map& vm, double scale, bool measure_only)
+ : rs274_base(vm), scale(scale > 0 ? scale : 1), measure_only(measure_only) {
 }
 
+std::chrono::duration<double> rs274_delay::cut_duration() {
+    return duration;
+}
