@@ -29,13 +29,26 @@
 #include "geom/polyhedron.h"
 #include <string>
 #include <vector>
+#include "base/machine_config.h"
+
+namespace cxxcam {
+namespace path {
+    struct step;
+}
+}
 
 class rs274_feedrate : public rs274_base
 {
 private:
     geom::polyhedron_t _model;
-    geom::polyhedron_t _tool;
+    geom::polyhedron_t _toolmodel;
     geom::polyhedron_t _tool_shank;
+    struct {
+        machine_config::mill_tool mill;
+        machine_config::lathe_tool lathe;
+    } _tool;
+
+    double chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, double spindle_step);
 
     virtual void _rapid(const Position& pos);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
