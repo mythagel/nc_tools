@@ -51,6 +51,7 @@ struct mill_tool {
     std::string name;
     double length = 0.0;
     double diameter = 0.0;
+    unsigned flutes = 0;
     double flute_length = 0.0;
     double shank_diameter = 0.0;
 };

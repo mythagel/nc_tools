@@ -189,6 +189,11 @@ bool get_tool(nc_config& config, unsigned id, const std::string& machine, mill_t
         tool.diameter = lua_tonumber(L, -1);
     lua_pop(L, 1);
 
+    lua_getfield(L, -1, "flutes");
+    if(lua_isnumber(L, -1))
+        tool.flutes = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+
     lua_getfield(L, -1, "flute_length");
     if(lua_isnumber(L, -1))
         tool.flute_length = lua_tonumber(L, -1);
@@ -206,6 +211,8 @@ bool get_tool(nc_config& config, unsigned id, const std::string& machine, lathe_
     auto& L = config.state();
     get_machine(L, machine);
     auto pop_machine_field = make_guard([&]{ lua_pop(L, 1); });
+
+    return false;
 }
 
 }
