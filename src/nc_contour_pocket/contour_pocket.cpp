@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
         ("cut_z,z", po::value<double>()->required(), "Z Cut depth")
         ("feedrate,f", po::value<double>()->required(), "Z Cut depth")
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
-        ("retract_z,z", po::value<double>()->default_value(1.0), "Z Tool retract")
+        ("retract_z,t", po::value<double>()->default_value(1.0), "Z Tool retract")
     ;
 
     try {
