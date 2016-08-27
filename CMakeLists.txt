@@ -14,5 +14,6 @@ ADD_SUBDIRECTORY(deps/cxxcam)
 ADD_SUBDIRECTORY(deps/svg_path)
 ADD_SUBDIRECTORY(deps/geom)
 ADD_SUBDIRECTORY(deps/clipper)
+ADD_SUBDIRECTORY(deps/cork)
 ADD_SUBDIRECTORY(src)
 

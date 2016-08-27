@@ -61,7 +61,22 @@ int main(int argc, char* argv[]) {
             std::cerr << line << "\n";
         }
 
-        std::cout << geom::format::off << modeler.model();
+        auto model = modeler.model();
+        std::cout << "OFF\n";
+        std::cout << model.n_vertices << " " << model.n_triangles << "\n\n";
+        for (unsigned i = 0; i < model.n_vertices; ++i) {
+            std::cout << model.vertices[i] << " ";
+            if ((i % 3) == 0) std::cout << "\n";
+        }
+        for (unsigned i = 0; i < model.n_triangles; ++i) {
+            std::cout << "3 ";
+            std::cout << model.vertices[(i*3) + 0] << " ";
+            std::cout << model.vertices[(i*3) + 1] << " ";
+            std::cout << model.vertices[(i*3) + 2] << " ";
+            std::cout << "\n";
+        }
+        freeCorkTriMesh(&model);
+        //std::cout << geom::format::off << modeler.model();
     } catch(const po::error& e) {
         print_exception(e);
         std::cout << options << "\n";

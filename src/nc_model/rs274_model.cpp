@@ -38,7 +38,29 @@
 #include <algorithm>
 #include "base/machine_config.h"
 
+#include "geom/io.h"
+
 #include <iostream>
+
+vecTriMesh::vecTriMesh() {
+    set();
+}
+vecTriMesh::vecTriMesh(const vecTriMesh& v)
+ : _triangles(v._triangles), _vertices(v._vertices) {
+    set();
+}
+vecTriMesh& vecTriMesh::operator=(const vecTriMesh& v) {
+    _triangles = v._triangles;
+    _vertices = v._vertices;
+    set();
+    return *this;
+}
+void vecTriMesh::set() {
+    n_triangles = _triangles.size() / 3;
+    n_vertices = _vertices.size();
+    triangles = _triangles.data();
+    vertices = _vertices.data();
+}
 
 namespace {
 
@@ -46,6 +68,70 @@ unsigned int hardware_concurrency() {
     auto cores = std::thread::hardware_concurrency();
     if(!cores) cores = 4;
     return cores;
+}
+
+static void corkTriMesh2CorkMesh(
+    const vecTriMesh& in,
+    CorkMesh *mesh_out
+) {
+    RawCorkMesh raw;
+    raw.vertices.resize(in.n_vertices);
+    raw.triangles.resize(in.n_triangles);
+    if(in.n_vertices == 0 || in.n_triangles == 0) {
+        CORK_ERROR("empty mesh input to Cork routine.");
+        *mesh_out = CorkMesh(raw);
+        return;
+    }
+    
+    uint max_ref_idx = 0;
+    for(uint i=0; i<in.n_triangles; i++) {
+        raw.triangles[i].a = in.triangles[3*i+0];
+        raw.triangles[i].b = in.triangles[3*i+1];
+        raw.triangles[i].c = in.triangles[3*i+2];
+        max_ref_idx = std::max(
+                        std::max(max_ref_idx,
+                                 in.triangles[3*i+0]),
+                        std::max(in.triangles[3*i+1],
+                                 in.triangles[3*i+2])
+                      );
+    }
+    if(max_ref_idx > in.n_vertices) {
+        CORK_ERROR("mesh input to Cork routine has an out of range reference "
+              "to a vertex.");
+        raw.vertices.clear();
+        raw.triangles.clear();
+        *mesh_out = CorkMesh(raw);
+        return;
+    }
+    
+    for(uint i=0; i<in.n_vertices; i++) {
+        raw.vertices[i].pos.x = in.vertices[3*i+0];
+        raw.vertices[i].pos.y = in.vertices[3*i+1];
+        raw.vertices[i].pos.z = in.vertices[3*i+2];
+    }
+    
+    *mesh_out = CorkMesh(raw);
+}
+CorkMesh to_mesh(const geom::polyhedron_t& poly) {
+    CorkMesh ret;
+    vecTriMesh mesh;
+
+    to_object(poly,
+        [&](double x, double y, double z) {
+            mesh._vertices.push_back(x);
+            mesh._vertices.push_back(y);
+            mesh._vertices.push_back(z);
+        },
+        [&](std::size_t t0, std::size_t t1, std::size_t t2) {
+            mesh._triangles.push_back(t0);
+            mesh._triangles.push_back(t1);
+            mesh._triangles.push_back(t2);
+        }
+    );
+
+    mesh.set();
+    corkTriMesh2CorkMesh(mesh, &ret);
+    return ret;
 }
 
 }
@@ -56,8 +142,8 @@ unsigned int hardware_concurrency() {
  * pool pulls tasks from queue
  * ...
  * */
-geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_motion);
-std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion);
+CorkMesh parallel_fold_toolpath(std::vector<CorkMesh> tool_motion);
+std::vector<CorkMesh> parallel_fold_toolpath(unsigned int n, std::vector<CorkMesh> tool_motion);
 
 void rs274_model::_rapid(const Position& pos) {
     using namespace cxxcam;
@@ -80,17 +166,17 @@ void rs274_model::_arc(const Position& end, const Position& center, const cxxcam
 	auto steps = path::expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? path::ArcDirection::Clockwise : path::ArcDirection::CounterClockwise), plane, std::abs(rotation), {}, _lathe ? spindle_steps : 1).path;
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
-		[&](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		[&](const path::step& s0, const path::step& s1) -> CorkMesh
 		{
             if (_lathe) {
                 auto tp = simulation::sweep_lathe_tool(_tool, s0, s1, units::plane_angle(spindle_theta * units::radians));
                 spindle_theta += spindle_step;
-                return tp;
+                return to_mesh(tp);
             } else {
-                return simulation::sweep_tool(_tool, s0, s1);
+                return to_mesh(simulation::sweep_tool(_tool, s0, s1));
             }
 		});
-    if(_toolpath.size() >= 512 * hardware_concurrency())
+    if(_toolpath.size() >= 5 * hardware_concurrency())
         _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
 }
 
@@ -108,17 +194,17 @@ void rs274_model::_linear(const Position& pos) {
 	auto steps = path::expand_linear(convert(program_pos), convert(pos), {}, _lathe ? spindle_steps : -1).path;
 
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(_toolpath), 
-		[&](const path::step& s0, const path::step& s1) -> geom::polyhedron_t
+		[&](const path::step& s0, const path::step& s1) -> CorkMesh
 		{
             if (_lathe) {
                 auto tp = simulation::sweep_lathe_tool(_tool, s0, s1, units::plane_angle(spindle_theta * units::radians));
                 spindle_theta += spindle_step;
-                return tp;
+                return to_mesh(tp);
             } else {
-			    return simulation::sweep_tool(_tool, s0, s1);
+			    return to_mesh(simulation::sweep_tool(_tool, s0, s1));
             }
 		});
-    if(_toolpath.size() >= 512 * hardware_concurrency())
+    if(_toolpath.size() >= 5 * hardware_concurrency())
         _toolpath = parallel_fold_toolpath(hardware_concurrency(), _toolpath);
 }
 /* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
@@ -146,56 +232,93 @@ void rs274_model::dwell(double /*seconds*/) {
 
 rs274_model::rs274_model(boost::program_options::variables_map& vm, const std::string& stock_filename)
  : rs274_base(vm) {
+    geom::polyhedron_t model;
     std::ifstream is(stock_filename);
-    throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
+    throw_if(!(is >> geom::format::off >> model), "Unable to read stock from file");
+    _model = to_mesh(model);
 
     auto type = machine_config::get_machine_type(config, machine_id);
     _lathe = type == machine_config::machine_type::lathe;
 }
 
-std::vector<geom::polyhedron_t> parallel_fold_toolpath(unsigned int n, std::vector<geom::polyhedron_t> tool_motion) {
-    if(n == 1) return { geom::merge(tool_motion) };
+CorkMesh merge(std::vector<CorkMesh> meshes) {
+    auto it = begin(meshes);
+    CorkMesh res = *it++;
+    while (it != end(meshes))
+        res.boolUnion(*it++);
+    return res;
+}
+
+std::vector<CorkMesh> parallel_fold_toolpath(unsigned int n, std::vector<CorkMesh> tool_motion) {
     if(tool_motion.size() == 1) return tool_motion;
+    if(n == 1) return { merge(tool_motion) };
 
     unsigned int chunk_size = std::floor(tool_motion.size() / static_cast<double>(n));
     unsigned int rem = tool_motion.size() % n;
     
-    typedef std::future<geom::polyhedron_t> polyhedron_future;
+    typedef std::future<CorkMesh> polyhedron_future;
     std::vector<polyhedron_future> folded;
 
     for(unsigned int i = 0; i < n; ++i) {
 
-        std::packaged_task<geom::polyhedron_t()> fold([&tool_motion, chunk_size, rem, i]() {
+        std::packaged_task<CorkMesh()> fold([&tool_motion, chunk_size, rem, i]() {
             auto begin = (chunk_size * i) + (i < rem ? i : rem);
             auto end = (begin + chunk_size) + (i < rem ? 1 : 0);
 
-            return geom::merge(std::vector<geom::polyhedron_t>(std::make_move_iterator(tool_motion.begin() + begin), std::make_move_iterator(tool_motion.begin() + end)));
+            return merge(std::vector<CorkMesh>(std::make_move_iterator(tool_motion.begin() + begin), std::make_move_iterator(tool_motion.begin() + end)));
         });
 
         folded.push_back(fold.get_future());
         std::thread(std::move(fold)).detach();
     }
 
-    std::vector<geom::polyhedron_t> result;
+    std::vector<CorkMesh> result;
     std::transform(begin(folded), end(folded), std::back_inserter(result), [](polyhedron_future& f){ return f.get(); });
     return result;
 }
-geom::polyhedron_t parallel_fold_toolpath(std::vector<geom::polyhedron_t> tool_motion) {
+CorkMesh parallel_fold_toolpath(std::vector<CorkMesh> tool_motion) {
     auto cores = hardware_concurrency();
     while(cores > 1) {
         tool_motion = parallel_fold_toolpath(cores, tool_motion);
         cores /= 2;
     }
-    return geom::merge(tool_motion);
+    return merge(tool_motion);
 }
 
-geom::polyhedron_t rs274_model::model() {
+static void corkMesh2CorkTriMesh(
+    CorkMesh *mesh_in,
+    CorkTriMesh *out
+) {
+    RawCorkMesh raw = mesh_in->raw();
+    
+    out->n_triangles = raw.triangles.size();
+    out->n_vertices  = raw.vertices.size();
+    
+    out->triangles = new uint[(out->n_triangles) * 3];
+    out->vertices  = new float[(out->n_vertices) * 3];
+    
+    for(uint i=0; i<out->n_triangles; i++) {
+        (out->triangles)[3*i+0] = raw.triangles[i].a;
+        (out->triangles)[3*i+1] = raw.triangles[i].b;
+        (out->triangles)[3*i+2] = raw.triangles[i].c;
+    }
+    
+    for(uint i=0; i<out->n_vertices; i++) {
+        (out->vertices)[3*i+0] = raw.vertices[i].pos.x;
+        (out->vertices)[3*i+1] = raw.vertices[i].pos.y;
+        (out->vertices)[3*i+2] = raw.vertices[i].pos.z;
+    }
+}
+
+CorkTriMesh rs274_model::model() {
     if(!_toolpath.empty()) {
         auto toolpath = parallel_fold_toolpath(_toolpath);
-        if (_lathe)
-        std::cerr << geom::format::off << toolpath;
+        //if (_lathe)
+        //    std::cerr << geom::format::off << toolpath;
         _toolpath.clear();
-        _model -= toolpath;
+        _model.boolDiff(toolpath);
     }
-    return _model;
+    CorkTriMesh ret;
+    corkMesh2CorkTriMesh(&_model, &ret);
+    return ret;
 }
