@@ -11,7 +11,7 @@
 
 
 namespace po = boost::program_options;
-using namespace ClipperLib;
+namespace cl = ClipperLib;
 
 struct point_2
 {
@@ -36,6 +36,7 @@ int main(int argc, char* argv[]) {
         ("feedrate,f", po::value<double>()->required(), "Z Cut depth")
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("retract_z,t", po::value<double>()->default_value(1.0), "Z Tool retract")
+        ("climb,c", "Climb mill (Relative to clockwise cutter rotation)")
     ;
 
     try {
@@ -54,10 +55,20 @@ int main(int argc, char* argv[]) {
         double feedrate = vm["feedrate"].as<double>();
         double stepdown = vm["stepdown"].as<double>();
         double retract_z = vm["retract_z"].as<double>();
+        bool climb = vm.count("climb");
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
 //        nc_path.execute();
+
+
+        auto orient_path = [&climb](cl::Path& path) {
+            bool CCW = Orientation(path);
+            if (climb && !CCW)
+                ReversePath(path);
+            else if (!climb && CCW)
+                ReversePath(path);
+        };
 
         std::string line;
         while(std::getline(std::cin, line)) {
@@ -86,8 +97,8 @@ int main(int argc, char* argv[]) {
         std::cout << "G0 Z" << r6(retract_z) << "\n";
 
         for (const auto& path : paths) {
-            ClipperOffset co;
-            co.AddPath(path, jtRound, etClosedPolygon);
+            cl::ClipperOffset co;
+            co.AddPath(path, cl::jtRound, cl::etClosedPolygon);
             co.ArcTolerance = 0.1 * nc_path.scale();
 
             double z = step_z;
@@ -97,17 +108,20 @@ int main(int argc, char* argv[]) {
 
                 double offset = 0.0;
                 while (true) {
-                    Paths solution;
+                    cl::Paths solution;
                     co.Execute(solution, offset * nc_path.scale());
 
-                    auto unscale_point = [&](const IntPoint& p) -> point_2 {
+                    auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
                         return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
                     };
 
                     for(auto& path : solution) {
 
+                        // Reorient path wrt. the cut direction (climb vs conventional)
+                        orient_path(path);
+
                         auto it_near = std::min_element(begin(path), end(path), 
-                            [&](const IntPoint& l, const IntPoint& r) -> bool {
+                            [&](const cl::IntPoint& l, const cl::IntPoint& r) -> bool {
                                 return std::abs(distance(unscale_point(l), current_point)) < std::abs(distance(unscale_point(r), current_point));
                             });
                         std::rotate(begin(path), it_near, end(path));
