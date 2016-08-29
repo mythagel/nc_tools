@@ -25,7 +25,7 @@
 #ifndef RS274_OFFSET_H_
 #define RS274_OFFSET_H_
 #include "base/rs274_base.h"
-#include "Bbox.h"
+#include "cxxcam/Bbox.h"
 
 /* allow ABC to be redefined around arbitary axes?
  * Or enforce AX BY CZ correlation

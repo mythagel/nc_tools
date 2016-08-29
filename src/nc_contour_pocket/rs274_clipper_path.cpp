@@ -23,7 +23,7 @@
  */
 
 #include "rs274_clipper_path.h"
-#include "Path.h"
+#include "cxxcam/Path.h"
 #include "base/machine_config.h"
 
 using namespace ClipperLib;

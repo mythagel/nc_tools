@@ -25,7 +25,7 @@
 #ifndef STOCK_H_
 #define STOCK_H_
 #include <memory>
-#include "Material.h"
+#include "cxxcam/Material.h"
 #include "geom/polyhedron.h"
 #include <iosfwd>
 

@@ -25,12 +25,12 @@
 #ifndef SIMULATION_H_
 #define SIMULATION_H_
 #include <vector>
-#include "Path.h"
+#include "cxxcam/Path.h"
 #include "Tool.h"
 #include "Stock.h"
-#include "Units.h"
-#include "Limits.h"
-#include "Bbox.h"
+#include "cxxcam/Units.h"
+#include "cxxcam/Limits.h"
+#include "cxxcam/Bbox.h"
 
 namespace cxxcam
 {

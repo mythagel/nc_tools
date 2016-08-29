@@ -6,7 +6,7 @@
 #include <string>
 #include <lua.hpp>
 
-#include "GCodeLine.h"
+#include "cxxcam/GCodeLine.h"
 #include <algorithm>
 #include <iterator>
 #include "base/nc_config.h"

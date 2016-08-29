@@ -6,7 +6,7 @@
 #include <vector>
 #include <string>
 #include "../throw_if.h"
-#include "Math.h"
+#include "cxxcam/Math.h"
 #include "rs274_transform.h"
 
 namespace po = boost::program_options;

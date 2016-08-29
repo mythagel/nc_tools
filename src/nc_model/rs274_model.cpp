@@ -25,7 +25,7 @@
 #include "rs274_model.h"
 #include <cmath>
 #include <cstring>
-#include "Path.h"
+#include "cxxcam/Path.h"
 #include "Simulation.h"
 #include <fstream>
 #include "throw_if.h"

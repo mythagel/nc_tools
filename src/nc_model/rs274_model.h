@@ -25,7 +25,7 @@
 #ifndef RS274_MODEL_H_
 #define RS274_MODEL_H_
 #include "base/rs274_base.h"
-#include "Position.h"
+#include "cxxcam/Position.h"
 #include "geom/polyhedron.h"
 #include <string>
 #include <vector>

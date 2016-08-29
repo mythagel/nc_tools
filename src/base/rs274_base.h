@@ -25,8 +25,8 @@
 #ifndef RS274_BASE_H_
 #define RS274_BASE_H_
 #include "rs274ngc.hh"
-#include "Position.h"
-#include "Math.h"
+#include "cxxcam/Position.h"
+#include "cxxcam/Math.h"
 #include "lua/state.h"
 #include <string>
 #include "nc_config.h"

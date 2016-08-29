@@ -24,7 +24,7 @@
 
 #include "Tool.h"
 #include "geom/primitives.h"
-#include "Error.h"
+#include "cxxcam/Error.h"
 
 namespace cxxcam
 {

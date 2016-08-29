@@ -28,7 +28,7 @@
 #include "throw_if.h"
 #include "fold_adjacent.h"
 #include <algorithm>
-#include "Path.h"
+#include "cxxcam/Path.h"
 
 cxxcam::math::point_3 pos2point(const cxxcam::Position& pos) {
     return {pos.X, pos.Y, pos.Z};

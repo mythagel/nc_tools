@@ -25,7 +25,7 @@
 #ifndef RS274_CLIPPER_PATH_H_
 #define RS274_CLIPPER_PATH_H_
 #include "base/rs274_base.h"
-#include "Math.h"
+#include "cxxcam/Math.h"
 #include "clipper.hpp"
 
 class rs274_clipper_path : public rs274_base

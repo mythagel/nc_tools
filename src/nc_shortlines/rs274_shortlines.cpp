@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include "Path.h"
+#include "cxxcam/Path.h"
 #include "../throw_if.h"
 #include "../r6.h"
 #include <iostream>

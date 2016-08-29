@@ -24,7 +24,7 @@
 
 #include "rs274_arcfit.h"
 #include <iostream>
-#include "Units.h"
+#include "cxxcam/Units.h"
 #include <boost/math/special_functions/sign.hpp>
 #include <algorithm>
 #include "base/machine_config.h"

@@ -10,7 +10,7 @@
 #include <vector>
 #include <map>
 
-#include "Units.h"
+#include "cxxcam/Units.h"
 #include <boost/math/special_functions/sign.hpp>
 
 namespace po = boost::program_options;

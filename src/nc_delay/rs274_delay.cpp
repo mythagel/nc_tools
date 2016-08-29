@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <chrono>
 #include <thread>
-#include "Path.h"
+#include "cxxcam/Path.h"
 #include "../throw_if.h"
 
 double rs274_delay::motion_duration_s(const cxxcam::units::length& motion_length) const {

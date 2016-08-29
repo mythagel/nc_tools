@@ -25,7 +25,7 @@
 #ifndef RS274_BOUNDS_H_
 #define RS274_BOUNDS_H_
 #include "base/rs274_base.h"
-#include "Bbox.h"
+#include "cxxcam/Bbox.h"
 
 class rs274_bounds : public rs274_base
 {

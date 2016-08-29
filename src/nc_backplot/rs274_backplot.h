@@ -26,8 +26,8 @@
 #define RS274_BACKPLOT_H_
 #include "base/rs274_base.h"
 #include <osg/Geode>
-#include "Position.h"
-#include "Path.h"
+#include "cxxcam/Position.h"
+#include "cxxcam/Path.h"
 
 class rs274_backplot : public rs274_base
 {
