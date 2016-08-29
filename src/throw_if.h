@@ -24,6 +24,7 @@
 
 #ifndef THROW_IF_H_
 #define THROW_IF_H_
+#include <string>
 #include <stdexcept>
 
 inline void throw_if(bool cond, const std::string& msg) {
