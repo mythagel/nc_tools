@@ -3,7 +3,6 @@ IF(UNIX)
 	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 ENDIF()
 
-FIND_PACKAGE(Threads REQUIRED)
 FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 FIND_PACKAGE(Lua REQUIRED)
 
@@ -18,7 +17,16 @@ include_directories(
 
 add_executable(nc_contour_pocket contour_pocket.cpp rs274_clipper_path.cpp ../print_exception.cpp)
 target_link_libraries(nc_contour_pocket
-    ${CMAKE_THREAD_LIBS_INIT}
+    ${Boost_LIBRARIES}
+    ${LUA_LIBRARIES}
+    rs274ngc
+    cxxcam
+    nc_base
+    polyclipping
+)
+
+add_executable(nc_spiral_pocket spiral_pocket.cpp rs274_clipper_path.cpp ../print_exception.cpp)
+target_link_libraries(nc_spiral_pocket
     ${Boost_LIBRARIES}
     ${LUA_LIBRARIES}
     rs274ngc

@@ -14,7 +14,7 @@ namespace po = boost::program_options;
 namespace cl = ClipperLib;
 
 int main(int argc, char* argv[]) {
-    po::options_description options("nc_contour_pocket");
+    po::options_description options("nc_spiral_pocket");
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
@@ -52,15 +52,6 @@ int main(int argc, char* argv[]) {
 //        nc_path.read("G18");
 //        nc_path.execute();
 
-
-        auto orient_path = [&climb](cl::Path& path) {
-            bool CCW = Orientation(path);
-            if (climb && !CCW)
-                ReversePath(path);
-            else if (!climb && CCW)
-                ReversePath(path);
-        };
-
         std::string line;
         while(std::getline(std::cin, line)) {
             int status;
@@ -89,64 +80,45 @@ int main(int argc, char* argv[]) {
 
         for (const auto& path : paths) {
 
-            /* TODO Offsetting paths individually makes improving the cut order easier,
-             * but prevents the handling of pockets with islands.
-             *
-             * Use the PolyTree structure to handle offsetting of paths with islands, and maintain
-             * the parent-child relationship needed to traverse z order first. */
-            cl::ClipperOffset co;
-            co.AddPath(path, cl::jtRound, cl::etClosedPolygon);
-            co.ArcTolerance = 0.1 * nc_path.scale();
-
             double z = step_z;
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
 
                 bool rapid_to_first = true;
 
-                double offset = 0.0;
-                while (true) {
-                    cl::Paths solution;
-                    co.Execute(solution, offset * nc_path.scale());
+                auto plunge = [&] {
+                    // TODO helix to depth!!
+                    std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                };
+                auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
+                    return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
+                };
 
-                    auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
-                        return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
-                    };
+                // Find polygon centroid
+                // determine incircle radius (approximate!)
+                // helix down to depth 1.5x cutter radius
+                // Create spiral, clip to path
+                std::vector<point_2> scaled_path;
+                std::transform(begin(path), end(path), std::back_inserter(scaled_path), [&](const cl::IntPoint& p) {
+                    return unscale_point(p);
+                });
 
-                    for(auto& path : solution) {
+                auto c = centroid(scaled_path);
+                std::cout << "G83 X" << r6(c.x) << " Y" << r6(c.y) << " Z-1 R1 Q0.5 F50" << '\n';
 
-                        // Reorient path wrt. the cut direction (climb vs conventional)
-                        orient_path(path);
+                if (rapid_to_first) {
+                    auto p = scaled_path.front();
+                    std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                    std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
 
-                        auto it_near = std::min_element(begin(path), end(path), 
-                            [&](const cl::IntPoint& l, const cl::IntPoint& r) -> bool {
-                                return std::abs(distance(unscale_point(l), current_point)) < std::abs(distance(unscale_point(r), current_point));
-                            });
-                        std::rotate(begin(path), it_near, end(path));
-
-                        if (rapid_to_first) {
-                            auto p = unscale_point(path.front());
-                            std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
-                            std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
-
-                            rapid_to_first = false;
-                        }
-
-                        // Close path
-                        path.push_back(path.front());
-                        for(auto& point : path) {
-                            auto p = unscale_point(point);
-                            std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
-                        }
-                        std::cout << "\n";
-
-                        current_point = unscale_point(path.front());
-                    }
-
-                    if(solution.empty())
-                        break;
-
-                    offset -= tool_offset;
+                    rapid_to_first = false;
                 }
+
+                // Close path
+                scaled_path.push_back(scaled_path.front());
+                for(auto& p : scaled_path) {
+                    std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                }
+                std::cout << "\n";
 
                 std::cout << "G0 Z" << r6(retract_z) << "\n";
             }
