@@ -87,7 +87,11 @@ int main(int argc, char* argv[]) {
 
                 auto plunge = [&] {
                     // TODO helix to depth!!
+                    // G2 x0 y0 I1.5 J1.5 Z-5 p10 f200
                     std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                };
+                auto scale_point = [&](const point_2& p) -> cl::IntPoint {
+                    return cl::IntPoint(p.x * nc_path.scale(), p.y * nc_path.scale());
                 };
                 auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
                     return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
@@ -103,23 +107,57 @@ int main(int argc, char* argv[]) {
                 });
 
                 auto c = centroid(scaled_path);
-                std::cout << "G83 X" << r6(c.x) << " Y" << r6(c.y) << " Z-1 R1 Q0.5 F50" << '\n';
+                //std::cout << "G83 X" << r6(c.x) << " Y" << r6(c.y) << " Z-1 R1 Q0.5 F50" << '\n';
 
-                if (rapid_to_first) {
-                    auto p = scaled_path.front();
-                    std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
-                    std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                double min_radius = 0.0;
+                double max_radius = 0.0;
+                {
+                    auto it = std::minmax_element(begin(scaled_path), end(scaled_path), [&c](const point_2& p0, const point_2& p1) -> bool {
+                        return distance(c, p0) < distance(c, p1);
+                    });
 
-                    rapid_to_first = false;
+                    min_radius = distance(c, *it.first);
+                    max_radius = distance(c, *it.second);
                 }
 
-                // Close path
-                scaled_path.push_back(scaled_path.front());
-                for(auto& p : scaled_path) {
-                    std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                // create spiral points, starting at c up to max_radius.
+                cl::Path spiral_path;
+                {
+                    double turn_theta = 2*PI * (max_radius / tool_offset);
+                    double rad_per_theta = max_radius / turn_theta;
+                    for (double theta = 0.1; theta < turn_theta; theta += 0.1) {
+                        double r = rad_per_theta * theta;
+                        double x = c.x + std::cos(theta) * r;
+                        double y = c.y + std::sin(theta) * r;
+                        spiral_path.push_back(scale_point({x, y}));
+                    }
                 }
-                std::cout << "\n";
+                cl::Clipper clipper;
+                clipper.AddPath(spiral_path, cl::ptSubject, false);
+                clipper.AddPath(path, cl::ptClip, true);
 
+                cl::PolyTree pt;
+                clipper.Execute(cl::ctIntersection, pt);
+
+                // TODO sort subpaths!!
+                for(auto node = pt.GetFirst(); node; node = node->GetNext()) {
+                    auto& path = node->Contour;
+                    if (rapid_to_first) {
+                        auto p = unscale_point(path.front());
+                        std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                        std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+
+                        rapid_to_first = false;
+                    }
+
+                    // Close path
+                    //scaled_path.push_back(scaled_path.front());
+                    for(auto& point : path) {
+                        auto p = unscale_point(point);
+                        std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                    }
+                    std::cout << "\n";
+                }
                 std::cout << "G0 Z" << r6(retract_z) << "\n";
             }
         }
