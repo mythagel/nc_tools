@@ -27,7 +27,6 @@ int main(int argc, char* argv[]) {
         ("feedrate,f", po::value<double>()->required(), "Z Cut depth")
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("retract_z,t", po::value<double>()->default_value(1.0), "Z Tool retract")
-        ("climb,c", "Climb mill (Relative to clockwise cutter rotation)")
     ;
 
     try {
@@ -46,7 +45,6 @@ int main(int argc, char* argv[]) {
         double feedrate = vm["feedrate"].as<double>();
         double stepdown = vm["stepdown"].as<double>();
         double retract_z = vm["retract_z"].as<double>();
-        bool climb = vm.count("climb");
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
@@ -75,15 +73,12 @@ int main(int argc, char* argv[]) {
         const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
         const double step_z = cut_z / n_steps;
 
-        point_2 current_point = {0, 0};
         std::cout << "G0 Z" << r6(retract_z) << "\n";
 
         for (const auto& path : paths) {
 
             double z = step_z;
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
-
-                bool rapid_to_first = true;
 
                 auto plunge = [&] {
                     // TODO helix to depth!!
@@ -119,6 +114,7 @@ int main(int argc, char* argv[]) {
                     min_radius = distance(c, *it.first);
                     max_radius = distance(c, *it.second);
                 }
+                // TODO check min radius to determine if reasonable to helix into pocket for initial plunge.
 
                 // create spiral points, starting at c up to max_radius.
                 cl::Path spiral_path;
@@ -139,9 +135,50 @@ int main(int argc, char* argv[]) {
                 cl::PolyTree pt;
                 clipper.Execute(cl::ctIntersection, pt);
 
-                // TODO sort subpaths!!
-                for(auto node = pt.GetFirst(); node; node = node->GetNext()) {
-                    auto& path = node->Contour;
+                cl::Paths paths;
+                OpenPathsFromPolyTree(pt, paths);
+
+                point_2 current_point = c;
+
+                bool rapid_to_first = true;
+                while (!paths.empty()) {
+
+                    auto it_min_start = std::min_element(begin(paths), end(paths), 
+                        [&](const cl::Path& p0, const cl::Path& p1) -> bool {
+                            return distance(unscale_point(p0.front()), current_point) < distance(unscale_point(p1.front()), current_point);
+                        });
+                    auto it_min_end = std::min_element(begin(paths), end(paths), 
+                        [&](const cl::Path& p0, const cl::Path& p1) -> bool {
+                            return distance(unscale_point(p0.back()), current_point) < distance(unscale_point(p1.back()), current_point);
+                        });
+
+                    auto dist_start = distance(unscale_point(it_min_start->front()), current_point);
+                    auto dist_end = distance(unscale_point(it_min_end->back()), current_point);
+
+                    auto it = dist_start < dist_end ? it_min_start : it_min_end;
+                    auto path = *it;
+                    paths.erase(it);
+
+                    double dist;
+                    if (dist_end < dist_start) {
+                        ReversePath(path);
+                        dist = dist_end;
+                    } else {
+                        dist = dist_start;
+                    }
+
+                    // TODO how to better characterise this constant?
+                    // Represents the threshold of distance between two paths
+                    // which would result in a retract
+                    if (dist >= tool_offset*3) {
+                        std::cout << "G0 Z" << r6(retract_z) << "\n";
+                        rapid_to_first = true;
+                    }
+
+                    // next path closest to end point of this path.
+                    current_point = unscale_point(path.back());
+
+
                     if (rapid_to_first) {
                         auto p = unscale_point(path.front());
                         std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
@@ -150,15 +187,13 @@ int main(int argc, char* argv[]) {
                         rapid_to_first = false;
                     }
 
-                    // Close path
-                    //scaled_path.push_back(scaled_path.front());
                     for(auto& point : path) {
                         auto p = unscale_point(point);
                         std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
                     }
-                    std::cout << "\n";
                 }
                 std::cout << "G0 Z" << r6(retract_z) << "\n";
+                std::cout << "\n";
             }
         }
 
