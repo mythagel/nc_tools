@@ -97,6 +97,12 @@ int main(int argc, char* argv[]) {
         std::cout << "G0 Z" << r6(retract_z) << "\n";
 
         for (const auto& path : paths) {
+
+            /* TODO Offsetting paths individually makes improving the cut order easier,
+             * but prevents the handling of pockets with islands.
+             *
+             * Use the PolyTree structure to handle offsetting of paths with islands, and maintain
+             * the parent-child relationship needed to traverse z order first. */
             cl::ClipperOffset co;
             co.AddPath(path, cl::jtRound, cl::etClosedPolygon);
             co.ArcTolerance = 0.1 * nc_path.scale();
