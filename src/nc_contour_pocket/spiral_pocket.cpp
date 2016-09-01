@@ -13,6 +13,117 @@
 namespace po = boost::program_options;
 namespace cl = ClipperLib;
 
+std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path, double tool_offset) {
+    auto c = centroid(path);
+
+    double scale = 10e12;
+    auto scale_point = [&](const point_2& p) -> cl::IntPoint {
+        return cl::IntPoint(p.x * scale, p.y * scale);
+    };
+    auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
+        return {static_cast<double>(p.X)/scale, static_cast<double>(p.Y)/scale};
+    };
+    auto scale_path = [&](const std::vector<point_2>& path) {
+        cl::Path scaled;
+        scaled.reserve(path.size());
+        for (auto& p : path)
+            scaled.push_back(scale_point(p));
+        return scaled;
+    };
+
+    double min_radius = 0.0;
+    double max_radius = 0.0;
+    {
+        auto it = std::minmax_element(begin(path), end(path), 
+            [&c](const point_2& p0, const point_2& p1) -> bool {
+                return distance(c, p0) < distance(c, p1);
+            });
+
+        min_radius = distance(c, *it.first);
+        max_radius = distance(c, *it.second);
+    }
+    // TODO check min radius to determine if reasonable to helix into pocket for initial plunge.
+
+    // create spiral points, starting at c up to max_radius.
+    cl::Path spiral_path;
+    {
+        double turn_theta = 2*PI * (max_radius / tool_offset);
+        double rad_per_theta = max_radius / turn_theta;
+        for (double theta = 0.1; theta < turn_theta; theta += 0.1) {
+            double r = rad_per_theta * theta;
+            double x = c.x + std::cos(theta) * r;
+            double y = c.y + std::sin(theta) * r;
+            spiral_path.push_back(scale_point({x, y}));
+        }
+    }
+
+    cl::Paths paths;
+    {
+        cl::Clipper clipper;
+        clipper.AddPath(spiral_path, cl::ptSubject, false);
+        clipper.AddPath(scale_path(path), cl::ptClip, true);
+
+        cl::PolyTree pt;
+        clipper.Execute(cl::ctIntersection, pt);
+        OpenPathsFromPolyTree(pt, paths);
+    }
+
+    std::vector<std::vector<point_2>> toolpaths;
+
+    // Start at center point of spiral
+    point_2 current_point = c;
+
+    bool new_path = true;
+    while (!paths.empty()) {
+
+        auto it_min_start = std::min_element(begin(paths), end(paths), 
+            [&](const cl::Path& p0, const cl::Path& p1) -> bool {
+                return distance(unscale_point(p0.front()), current_point) < distance(unscale_point(p1.front()), current_point);
+            });
+        auto it_min_end = std::min_element(begin(paths), end(paths), 
+            [&](const cl::Path& p0, const cl::Path& p1) -> bool {
+                return distance(unscale_point(p0.back()), current_point) < distance(unscale_point(p1.back()), current_point);
+            });
+
+        auto dist_start = distance(unscale_point(it_min_start->front()), current_point);
+        auto dist_end = distance(unscale_point(it_min_end->back()), current_point);
+
+        auto it = dist_start < dist_end ? it_min_start : it_min_end;
+        auto path = *it;
+        paths.erase(it);
+
+        double dist;
+        if (dist_end < dist_start) {
+            ReversePath(path);
+            dist = dist_end;
+        } else {
+            dist = dist_start;
+        }
+
+        // TODO how to better characterise this constant?
+        // Represents the threshold of distance between two paths
+        // which would result in a retract
+        if (dist >= tool_offset*3) {
+            new_path = true;
+        }
+
+        // next path closest to end point of this path.
+        current_point = unscale_point(path.back());
+
+        if (new_path) {
+            toolpaths.emplace_back();
+            new_path = false;
+        }
+
+        for(auto& point : path) {
+            auto p = unscale_point(point);
+            toolpaths.back().push_back(p);
+        }
+    }
+
+    return toolpaths;
+}
+
 int main(int argc, char* argv[]) {
     po::options_description options("nc_spiral_pocket");
     std::vector<std::string> args(argv, argv + argc);
@@ -101,98 +212,24 @@ int main(int argc, char* argv[]) {
                     return unscale_point(p);
                 });
 
-                auto c = centroid(scaled_path);
-                //std::cout << "G83 X" << r6(c.x) << " Y" << r6(c.y) << " Z-1 R1 Q0.5 F50" << '\n';
-
-                double min_radius = 0.0;
-                double max_radius = 0.0;
-                {
-                    auto it = std::minmax_element(begin(scaled_path), end(scaled_path), [&c](const point_2& p0, const point_2& p1) -> bool {
-                        return distance(c, p0) < distance(c, p1);
-                    });
-
-                    min_radius = distance(c, *it.first);
-                    max_radius = distance(c, *it.second);
-                }
-                // TODO check min radius to determine if reasonable to helix into pocket for initial plunge.
-
-                // create spiral points, starting at c up to max_radius.
-                cl::Path spiral_path;
-                {
-                    double turn_theta = 2*PI * (max_radius / tool_offset);
-                    double rad_per_theta = max_radius / turn_theta;
-                    for (double theta = 0.1; theta < turn_theta; theta += 0.1) {
-                        double r = rad_per_theta * theta;
-                        double x = c.x + std::cos(theta) * r;
-                        double y = c.y + std::sin(theta) * r;
-                        spiral_path.push_back(scale_point({x, y}));
-                    }
-                }
-                cl::Clipper clipper;
-                clipper.AddPath(spiral_path, cl::ptSubject, false);
-                clipper.AddPath(path, cl::ptClip, true);
-
-                cl::PolyTree pt;
-                clipper.Execute(cl::ctIntersection, pt);
-
-                cl::Paths paths;
-                OpenPathsFromPolyTree(pt, paths);
-
-                point_2 current_point = c;
-
-                bool rapid_to_first = true;
-                while (!paths.empty()) {
-
-                    auto it_min_start = std::min_element(begin(paths), end(paths), 
-                        [&](const cl::Path& p0, const cl::Path& p1) -> bool {
-                            return distance(unscale_point(p0.front()), current_point) < distance(unscale_point(p1.front()), current_point);
-                        });
-                    auto it_min_end = std::min_element(begin(paths), end(paths), 
-                        [&](const cl::Path& p0, const cl::Path& p1) -> bool {
-                            return distance(unscale_point(p0.back()), current_point) < distance(unscale_point(p1.back()), current_point);
-                        });
-
-                    auto dist_start = distance(unscale_point(it_min_start->front()), current_point);
-                    auto dist_end = distance(unscale_point(it_min_end->back()), current_point);
-
-                    auto it = dist_start < dist_end ? it_min_start : it_min_end;
-                    auto path = *it;
-                    paths.erase(it);
-
-                    double dist;
-                    if (dist_end < dist_start) {
-                        ReversePath(path);
-                        dist = dist_end;
-                    } else {
-                        dist = dist_start;
-                    }
-
-                    // TODO how to better characterise this constant?
-                    // Represents the threshold of distance between two paths
-                    // which would result in a retract
-                    if (dist >= tool_offset*3) {
-                        std::cout << "G0 Z" << r6(retract_z) << "\n";
-                        rapid_to_first = true;
-                    }
-
-                    // next path closest to end point of this path.
-                    current_point = unscale_point(path.back());
-
+                auto paths = spiral_zigzag(scaled_path, tool_offset);
+                for (auto& path : paths) {
+                    bool rapid_to_first = true;
 
                     if (rapid_to_first) {
-                        auto p = unscale_point(path.front());
+                        auto p = path.front();
                         std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
                         std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
 
                         rapid_to_first = false;
                     }
 
-                    for(auto& point : path) {
-                        auto p = unscale_point(point);
+                    for(auto& p : path) {
                         std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
                     }
+
+                    std::cout << "G0 Z" << r6(retract_z) << "\n";
                 }
-                std::cout << "G0 Z" << r6(retract_z) << "\n";
                 std::cout << "\n";
             }
         }
