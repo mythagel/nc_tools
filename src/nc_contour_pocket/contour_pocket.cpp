@@ -12,6 +12,7 @@
 
 namespace po = boost::program_options;
 namespace cl = ClipperLib;
+using namespace geometry;
 
 int main(int argc, char* argv[]) {
     po::options_description options("nc_contour_pocket");

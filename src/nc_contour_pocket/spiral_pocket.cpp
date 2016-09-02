@@ -9,9 +9,11 @@
 #include <algorithm>
 #include "../r6.h"
 #include "common.h"
+#include <stdexcept>
 
 namespace po = boost::program_options;
 namespace cl = ClipperLib;
+using namespace geometry;
 
 std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path, double tool_offset) {
     auto c = centroid(path);
@@ -124,6 +126,43 @@ std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path
     return toolpaths;
 }
 
+std::vector<std::vector<point_2>> spiral_morph(const std::vector<point_2>& path, double tool_offset) {
+	auto c = centroid(path);
+
+	double min_radius = 0.0;
+	double max_radius = 0.0;
+	{
+		auto it = std::minmax_element(begin(path), end(path), [&c](const point_2& p0, const point_2& p1) -> bool {
+			return distance(c, p0) < distance(c, p1);
+		});
+
+		min_radius = distance(c, *it.first);
+		max_radius = distance(c, *it.second);
+	}
+
+    std::vector<std::vector<point_2>> toolpaths;
+    toolpaths.emplace_back();
+
+	double radius = min_radius;
+	double coil_gap = 0.3;
+	double turn_theta = 2*PI * (radius / coil_gap);
+	double rad_per_theta = radius / turn_theta;
+	for (double theta = 0.1; theta < turn_theta; theta += 0.03) {
+		double r = rad_per_theta * theta;
+		point_2 p0 = {c.x + std::cos(theta) * r, c.y + std::sin(theta) * r};
+		line_segment_2 ray;
+		ray.a = c;
+		ray.b = {c.x + std::cos(theta) * (max_radius+1), c.y + std::sin(theta) * (max_radius+1)}; // +1 == fudge
+		auto p1 = intersects(ray, path);
+		if (!p1) throw std::runtime_error("path must be closed");
+		auto t = theta / turn_theta;
+		auto p = lerp(p0, *p1, t);
+
+		toolpaths.back().push_back(p);
+	}
+    return toolpaths;
+}
+
 int main(int argc, char* argv[]) {
     po::options_description options("nc_spiral_pocket");
     std::vector<std::string> args(argv, argv + argc);
@@ -188,39 +227,48 @@ int main(int argc, char* argv[]) {
 
         for (const auto& path : paths) {
 
+            bool helical_plunge = true;
+
             double z = step_z;
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
 
-                auto plunge = [&] {
-                    // TODO helix to depth!!
-                    // G2 x0 y0 I1.5 J1.5 Z-5 p10 f200
-                    std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
-                };
-                auto scale_point = [&](const point_2& p) -> cl::IntPoint {
-                    return cl::IntPoint(p.x * nc_path.scale(), p.y * nc_path.scale());
-                };
                 auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
                     return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
                 };
 
-                // Find polygon centroid
-                // determine incircle radius (approximate!)
-                // helix down to depth 1.5x cutter radius
-                // Create spiral, clip to path
                 std::vector<point_2> scaled_path;
                 std::transform(begin(path), end(path), std::back_inserter(scaled_path), [&](const cl::IntPoint& p) {
                     return unscale_point(p);
                 });
 
                 auto paths = spiral_zigzag(scaled_path, tool_offset);
+
+                // Sprial morph not ready.
+                //auto paths = spiral_morph(scaled_path, tool_offset);
+
                 for (auto& path : paths) {
                     bool rapid_to_first = true;
 
                     if (rapid_to_first) {
                         auto p = path.front();
                         std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
-                        std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
 
+                        if (helical_plunge) {
+                            double plunge_r = vm["tool_r"].as<double>();
+                            unsigned plunge_p = std::abs(z) / 0.1;   // plunge stepdown
+                            std::cout << "G0 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) << "\n";
+                            std::cout << "G3 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) 
+                                        << " I" << r6(plunge_r) 
+                                        << " P" << plunge_p 
+                                        << " Z" << z 
+                                        << " F" << r6(feedrate) << "\n";
+                            std::cout << "G1 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+
+                            helical_plunge = false;
+                        } else {
+                            std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                            std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                        }
                         rapid_to_first = false;
                     }
 
