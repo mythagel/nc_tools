@@ -227,25 +227,28 @@ int main(int argc, char* argv[]) {
 
         for (const auto& path : paths) {
 
-            bool helical_plunge = true;
+            auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
+                return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
+            };
+
+            const auto scaled_path = [&] {
+                std::vector<point_2> scaled;
+                scaled.reserve(path.size());
+                std::transform(begin(path), end(path), std::back_inserter(scaled), [&](const cl::IntPoint& p) {
+                    return unscale_point(p);
+                });
+                return scaled;
+            }();
+
+            const auto paths = spiral_zigzag(scaled_path, tool_offset);
+
+            // Sprial morph not ready.
+            //auto paths = spiral_morph(scaled_path, tool_offset);
 
             double z = step_z;
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
 
-                auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
-                    return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};
-                };
-
-                std::vector<point_2> scaled_path;
-                std::transform(begin(path), end(path), std::back_inserter(scaled_path), [&](const cl::IntPoint& p) {
-                    return unscale_point(p);
-                });
-
-                auto paths = spiral_zigzag(scaled_path, tool_offset);
-
-                // Sprial morph not ready.
-                //auto paths = spiral_morph(scaled_path, tool_offset);
-
+                bool helical_plunge = true;
                 for (auto& path : paths) {
                     bool rapid_to_first = true;
 
@@ -255,7 +258,7 @@ int main(int argc, char* argv[]) {
 
                         if (helical_plunge) {
                             double plunge_r = vm["tool_r"].as<double>();
-                            unsigned plunge_p = std::abs(z) / 0.1;   // plunge stepdown
+                            unsigned plunge_p = std::abs(z) / 0.1;   // TODO plunge stepdown
                             std::cout << "G0 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) << "\n";
                             std::cout << "G3 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) 
                                         << " I" << r6(plunge_r) 
