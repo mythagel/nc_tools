@@ -313,7 +313,8 @@ int main(int argc, char* argv[]) {
                     break;
                 case sf::Event::MouseWheelMoved:
                     eq->mouseWarped(event.mouseWheel.x, event.mouseWheel.y);
-                    eq->mouseScroll(event.mouseWheel.delta > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN);
+                    if (event.mouseWheel.delta != 0)
+                        eq->mouseScroll(event.mouseWheel.delta > 0 ? osgGA::GUIEventAdapter::SCROLL_UP : osgGA::GUIEventAdapter::SCROLL_DOWN);
                     break;
                 case sf::Event::MouseMoved:
                     eq->mouseMotion(event.mouseMove.x, event.mouseMove.y);
