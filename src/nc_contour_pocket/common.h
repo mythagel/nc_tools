@@ -63,6 +63,10 @@ struct line_segment_2
     point_2 b;
 };
 
+inline double squared_length(const line_segment_2& l) {
+    return std::pow(l.b.x - l.a.x, 2) + std::pow(l.b.y - l.a.y, 2);
+}
+
 inline point_2 centroid(const std::vector<point_2>& polygon) {
     point_2 c = {0, 0};
     double A = 0;
@@ -81,6 +85,15 @@ inline point_2 centroid(const std::vector<point_2>& polygon) {
     c.x /= 6*A;
     c.y /= 6*A;
     return c;
+}
+
+inline point_2 nearest_point(const line_segment_2& l, const point_2& p) {
+    auto l2 = squared_length(l);
+    if (l2 == 0) return l.a;
+    auto s1 = p - l.a;
+    auto s2 = l.b - l.a;
+    auto t = std::max(0.0, std::min(1.0, dot({s1.x, s1.y}, {s2.x, s2.y}) / l2));
+    return l.a + (l.b - l.a) * t;
 }
 
 template<typename T>

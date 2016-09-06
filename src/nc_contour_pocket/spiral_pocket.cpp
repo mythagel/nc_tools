@@ -132,20 +132,32 @@ std::vector<std::vector<point_2>> spiral_morph(const std::vector<point_2>& path,
 	double min_radius = 0.0;
 	double max_radius = 0.0;
 	{
-		auto it = std::minmax_element(begin(path), end(path), [&c](const point_2& p0, const point_2& p1) -> bool {
+		auto it_max = std::max_element(begin(path), end(path), [&c](const point_2& p0, const point_2& p1) -> bool {
 			return distance(c, p0) < distance(c, p1);
 		});
 
-		min_radius = distance(c, *it.first);
-		max_radius = distance(c, *it.second);
+		max_radius = distance(c, *it_max);
+
+        auto it = begin(path);
+        auto p = *it;
+        min_radius = distance(c, p);
+        while (it != end(path)) {
+            auto p0 = nearest_point({p, *it}, c);
+            auto r = distance(c, p0);
+            if (r < min_radius)
+                min_radius = r;
+
+            p = *it;
+            ++it;
+        }
 	}
 
     std::vector<std::vector<point_2>> toolpaths;
     toolpaths.emplace_back();
 
 	double radius = min_radius;
-	double coil_gap = 0.3;
-	double turn_theta = 2*PI * (radius / coil_gap);
+	double coil_gap = tool_offset;
+	double turn_theta = 2*PI * (max_radius / coil_gap);
 	double rad_per_theta = radius / turn_theta;
 	for (double theta = 0.1; theta < turn_theta; theta += 0.03) {
 		double r = rad_per_theta * theta;
