@@ -165,6 +165,17 @@ int main(int argc, char* argv[]) {
 
         auto paths = nc_path.path();
 
+        // Offset path inwards by tool radius.
+        {
+            double offset = -vm["tool_r"].as<double>();
+            double scale = 10e12;
+
+            cl::ClipperOffset co;
+            co.AddPaths(paths, cl::jtRound, cl::etClosedPolygon);
+            co.ArcTolerance = 0.1 * scale;
+            co.Execute(paths, offset * scale);
+        }
+
         const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
         const double step_z = cut_z / n_steps;
 
@@ -205,7 +216,7 @@ int main(int argc, char* argv[]) {
                         std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
 
                         if (helical_plunge) {
-                            double plunge_r = vm["tool_r"].as<double>();
+                            double plunge_r = vm["tool_r"].as<double>()/2.0;
                             unsigned plunge_p = std::abs(z) / 0.1;   // TODO plunge stepdown
                             std::cout << "G0 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) << "\n";
                             std::cout << "G3 X" << r6(p.x - plunge_r) << " Y" << r6(p.y) 
