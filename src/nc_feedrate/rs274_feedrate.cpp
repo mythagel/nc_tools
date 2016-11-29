@@ -26,85 +26,65 @@
 #include <cmath>
 #include <cstring>
 #include "cxxcam/Path.h"
-#include "Simulation.h"
 #include <fstream>
 #include "throw_if.h"
-#include "geom/primitives.h"
 #include "fold_adjacent.h"
-#include "geom/ops.h"
 #include <iterator>
 #include <algorithm>
-#include "geom/query.h"
-#include "geom/translate.h"
 #include <iostream>
 #include "base/machine_config.h"
+#include "formulas.h"
 
-#include "../r6.h"
-std::ostream& operator<<(std::ostream& os, const geom::query::bbox_3& b) {
-    os << "min: {" << r6(b.min.x) << ", " << r6(b.min.y) << ", " << r6(b.min.z) <<"} max: {" << r6(b.max.x) << ", " << r6(b.max.y) << ", " << r6(b.max.z) <<"}";
-    return os;
+#include "clipper.hpp"
+namespace cl = ClipperLib;
+static const double CLIPPER_SCALE = 1e12;
+
+namespace slicing {
+
+namespace radius {
+double endmill(double z, const machine_config::mill_tool& tool) {
+    return (z > 0 && z <= tool.flute_length) ? tool.diameter / 2.0 : 0;
+}
 }
 
-namespace formulas {
-// http://www.sandvik.coromant.com/en-us/knowledge/milling/formulas_and_definitions/formulas
+cl::Path endmill(double z, const machine_config::mill_tool& tool, unsigned segments = 64) {
+    auto r = radius::endmill(z, tool);
 
-/* Dcap/mm      - Cutter diameter at actual depth of cut
- * fz/mm        - feed per tooth
- * Zn           - total cutter teeth
- * Zc           - effective cutter teeth
- * Vf/mm/min    - table feed
- * fn/mm        - feed per revolution
- * ap/mm        - depth of cut
- * Vc/m/min     - Cutting speed
- * Y0           - chip rake angle
- * ae/mm        - working engagement
- * n/rpm        - spindle speed
- * Pc/kW        - net power
- * Mc/Nm        - Torque
- * Q/cm3/min    - Material removal rate
- * hm/mm        - Average chip thickness
- * hex/mm       - Max chip thickness
- * Kr/deg       - Entering angle
- * Dm/mm        - Machined diameter (component diameter)
- * Dw/mm        - Unmachined diameter
- * Vfm/mm/min   - Table feed of tool at Dm (machined diameter)
- */
+    if (r == 0) return {};
 
-double Vc(double Dcap, double n) {
-    return (Dcap * PI * n) / 1000.0;
+    auto scale = [](double v) { return v * CLIPPER_SCALE; };
+
+    cl::Path polygon;
+    polygon.reserve(segments);
+
+    double delta_theta = (2*PI) / segments;
+    double theta = 0;
+    for (unsigned i = 0; i < segments; ++i, theta += delta_theta)
+        polygon.emplace_back(scale(std::cos(theta)*r), scale(std::sin(theta)*r));
+
+    return polygon;
 }
 
-double n(double Vc, double Dcap) {
-    return (Vc * 1000.0) / (PI * Dcap);
-}
+cl::Paths slice_bbox(double z, const cxxcam::Bbox& bbox) {
+    using cxxcam::units::length_mm;
 
-double fz(double Vf, double n, unsigned Zc) {
-    return Vf / (n * Zc);
-}
+    cl::Paths paths;
+    paths.emplace_back();
+    auto& path = paths.back();
 
-double Q(double ap, double ae, double Vf) {
-    return (ap * ae * Vf) / 1000.0;
-}
+    auto scale_point = [](cxxcam::units::length x, cxxcam::units::length y) {
+        return cl::IntPoint(length_mm(x).value() * CLIPPER_SCALE, length_mm(y).value() * CLIPPER_SCALE);
+    };
 
-double Vf(double fz, double n, double Zc) {
-    return fz * n * Zc;
-}
+    if (z < length_mm(bbox.min.z).value() || z > length_mm(bbox.max.z).value())
+        return {};
 
-double Mc(double Pc, double n) {
-    return (Pc * 30.0 * 1000.0) / (PI * n);
-}
+    path.push_back(scale_point(bbox.min.x, bbox.min.y));
+    path.push_back(scale_point(bbox.min.x, bbox.max.y));
+    path.push_back(scale_point(bbox.max.x, bbox.max.y));
+    path.push_back(scale_point(bbox.max.x, bbox.min.y));
 
-double Pc(double ap, double ae, double Vf, double kc) {
-    return (ap * ae * Vf * kc) / (60 * 1000000.0);
-}
-
-double hm_side(double Kr, double ae, double fz, double Dcap) {
-    auto deg2rad = [](double d) { return (d / 180.0) * PI; };
-    return (360 * std::sin(deg2rad(Kr)) * ae * fz) / (PI * Dcap * std::acos(deg2rad(1- ((2 * ae) / Dcap) )));
-}
-double hm_face(double Kr, double ae, double fz, double Dcap) {
-    auto deg2rad = [](double d) { return (d / 180.0) * PI; };
-    return (180 * std::sin(deg2rad(Kr)) * ae * fz) / (PI * Dcap * std::asin(deg2rad(ae/Dcap)));
+    return paths;
 }
 
 }
@@ -121,8 +101,10 @@ void rs274_feedrate::_rapid(const Position& pos) {
     fold_adjacent(std::begin(steps), std::end(steps), std::back_inserter(intersections), 
 		[this](const path::step& s0, const path::step& s1) -> bool
 		{
-			auto toolpath = simulation::sweep_tool(_toolmodel + _tool_shank, s0, s1);
-            return intersects(toolpath, _model);
+            (void) s0;
+            (void) s1;
+            // TODO clipper minowski sum path + tool then check for intersections in this and all previous z levels
+            return false;
 		});
 
     if (std::find(begin(intersections), end(intersections), true) != end(intersections)) {
@@ -131,6 +113,10 @@ void rs274_feedrate::_rapid(const Position& pos) {
     }
 }
 
+/* TODO plan with z slices
+ * store cl::Paths representing z slices of stock sorted by z height
+ * need function to return cl::Paths representing tool model at particular z height - done
+ * */
 double rs274_feedrate::chip_load(const cxxcam::path::step& s0, const cxxcam::path::step& s1, double spindle_step) {
     using namespace cxxcam;
     using units::length_mm;
@@ -165,58 +151,143 @@ double rs274_feedrate::chip_load(const cxxcam::path::step& s0, const cxxcam::pat
         * calculate tool theta for step length at current rpm
         * bbox width on y axis is width of cut
         * */
-    auto tool_path = simulation::sweep_tool(_toolmodel, s0, s1);
-    if(!intersects(tool_path, _model))
-        return 0.0;
 
-    auto mat = _model * tool_path;
-    _model -= tool_path;
-    auto deorient = identity;
-    deorient /= o0;
+/* TODO have different tools
+ * one which calculates and annotates toolpath with comments
+ * indicating the relevant measure parameters, chip load, cutter engagement
+ * milling forces, etc,
+ * and another which uses those to optimise feedrate
+ * */
 
-    /* TODO perhaps instead of reorienting, fire ray in direction of travel and measure distance between entry and exit point.
-     * will work for plunge (direction of travel == z), normal xy travel (widest part of chip), & 3d moves */
+    auto scale_point = [](const cxxcam::math::point_3& p) {
+        return cl::IntPoint(length_mm(p.x).value() * CLIPPER_SCALE, length_mm(p.y).value() * CLIPPER_SCALE);
+    };
+
+    auto debug_path = [](const cl::Paths& paths) {
+        struct point { double x, y; };
+        for(auto& path : paths) {
+            auto unscale = [&](const cl::IntPoint& p) -> point {
+                return {static_cast<double>(p.X) / CLIPPER_SCALE, static_cast<double>(p.Y) / CLIPPER_SCALE};
+            };
+
+            auto first = unscale(*path.begin());
+            std::cout << "M " << first.x << " " << first.y << " ";
+            for(auto& point : path) {
+                auto p = unscale(point);
+                std::cout << "L " << p.x << " " << p.y << " ";
+            }
+            std::cout << "L " << first.x << " " << first.y << " ";
+        }
+        std::cout << "\n";
+    };
+
+    double min_z = length_mm(p0.z).value();
+    double max_z = length_mm(p1.z).value();
+    for (auto& slice_desc : _slices) {
+        auto slice_z0 = slice_desc.first;
+        auto slice_z1 = slice_desc.first + _slice_z;
+        auto& slice = slice_desc.second;
+        if ((min_z >= slice_z0 && min_z <= slice_z1) ||
+            (max_z >= slice_z0 && max_z <= slice_z1) ||
+            (slice_z0 >= min_z && slice_z0 <= max_z) ||
+            (slice_z1 >= min_z && slice_z1 <= max_z)) {
+
+            auto tool_z = min_z - slice_z0;
+            auto tool_slice = slicing::endmill(tool_z, _tool.mill);
+            if (tool_slice.empty())
+                continue;
+
+            auto translate = [](const cl::Paths& paths, double x, double y) {
+                cl::Paths translated;
+                x *= CLIPPER_SCALE;
+                y *= CLIPPER_SCALE;
+                for (auto& path : paths) {
+                    translated.emplace_back();
+                    auto& t = translated.back();
+                    for (auto& p : path)
+                        t.emplace_back(p.X + x, p.Y + y);
+                }
+                return translated;
+            };
+
+            cl::Paths toolpath;
+            //toolpath = translate({ tool_slice }, length_mm(p1.x).value(), length_mm(p1.y).value());
+            MinkowskiSum(tool_slice, {scale_point(p0), scale_point(p1)}, toolpath, false);
+
+            // calculate cutter engagement
+            if (true)
+            {
+                cl::Clipper clipper;
+                clipper.AddPaths(toolpath, cl::ptSubject, false);
+                clipper.AddPaths(slice, cl::ptClip, true);
+
+                cl::PolyTree pt;
+                clipper.Execute(cl::ctIntersection, pt);
+
+                cl::Paths open;
+                OpenPathsFromPolyTree(pt, open);
+
+                auto path_length = [](const cl::Paths& paths) {
+                    double length = 0;
+                    for (auto& path : paths) {
+                        double x0 = static_cast<double>(path.front().X) / CLIPPER_SCALE;
+                        double y0 = static_cast<double>(path.front().Y) / CLIPPER_SCALE;
+                        for (auto& point : path) {
+                            double x1 = static_cast<double>(point.X) / CLIPPER_SCALE;
+                            double y1 = static_cast<double>(point.Y) / CLIPPER_SCALE;
+                            length += std::sqrt(std::pow(x1 - x0, 2) + std::pow(y1 - y0, 2));
+                            x0 = x1;
+                            y0 = y1;
+                        }
+                    }
+                    return length;
+                };
+                debug_path(open);
+                {
+                    auto l0 = path_length(toolpath);
+                    auto l1 = path_length(open);
+                    double engagement = 360.0 * (l1 / l0);
+
+                    std::cerr << engagement << "\n";
+                }
+                // TODO
+            }
+
+            // remove toolpath from stock slice
+            {
+                cl::Clipper clipper;
+                clipper.AddPaths(slice, cl::ptSubject, true);
+                clipper.AddPaths(toolpath, cl::ptClip, true);
+                slice.clear();
+                clipper.Execute(cl::ctDifference, slice);
+
+                //debug_path(slice);
+            }
+
+
+        }
+    }
+
+    // has to be done for EACH slice layer which potentially intersects tool
+    // z == tool_z
 
     auto dir = math::vector_3{length_mm(p1.x - p0.x).value(), length_mm(p1.y - p0.y).value(), length_mm(p1.z - p0.z).value()};
-    // ignore z component of direction
-    dir.z = 0;
-    auto reorient = identity;
-    reorient /= to_quat(normalise(dir), {1, 0, 0});
-
-    mat = translate(mat, length_mm(-p0.x).value(), length_mm(-p0.y).value(), length_mm(-p0.z).value());
-    mat = rotate(mat, deorient.R_component_1(), deorient.R_component_2(), deorient.R_component_3(), deorient.R_component_4());
-    mat = rotate(mat, reorient.R_component_1(), reorient.R_component_2(), reorient.R_component_3(), reorient.R_component_4());
+    // TODO bail if z component of direction
 
     auto n_rotations = spindle_step / (2*PI);
     auto dist_per_rev = length_mm(length).value() / n_rotations;
-
-    auto bbox = bounding_box(mat);
-    auto x_width = bbox.max.x - bbox.min.x;
-    auto y_width = bbox.max.y - bbox.min.y;
-    auto z_width = bbox.max.z - bbox.min.z;
 
     auto Vf = _feed_rate;
     auto n = _spindle_speed;
     auto Zc = _tool.mill.flutes;
     auto fz = formulas::fz(Vf, n, Zc);
-    auto ae = y_width;
-    auto ap = z_width;
+    auto ae = 0;  // TODO cutter engagement
+    auto ap = 0;  // TODO DOC
     auto Q = formulas::Q(ap, ae, Vf);
-    std::cerr << "Feed per tooth: " << fz << " mm\n";
-    std::cerr << "Material Removal Rate: " << Q << " cm3/min\n";
+    //std::cerr << "Feed per tooth: " << fz << " mm\n";
+    //std::cerr << "Material Removal Rate: " << Q << " cm3/min\n";
 
-    std::cerr << " len: " << length_mm(length) << " x" << x_width << " y" << y_width << " z" << z_width << "\n";
-    std::cerr << "mm/rev: " << dist_per_rev << "\n";
-    if(true) // testing
-    {
-        static int i = 0;
-        std::stringstream s;
-        s << "crap" << i << ".off";
-        std::ofstream f(s.str());
-        f << geom::format::off << mat;
-        ++i;
-    }
-    return 0.0;
+    return fz;
 }
 
 void rs274_feedrate::_arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation) {
@@ -259,8 +330,6 @@ void rs274_feedrate::_linear(const Position& pos) {
     apply_spindle_delta(spindle_delta);
 }
 
-/* abstract out tool defs from models + add drill model where 'flutes' is tapered tip
- * */
 void rs274_feedrate::tool_change(int slot) {
     using namespace machine_config;
 
@@ -268,10 +337,7 @@ void rs274_feedrate::tool_change(int slot) {
         case machine_type::mill: {
             mill_tool& t = _tool.mill;
             get_tool(config, slot, machine_id, t);
-            auto shank = geom::make_cone( {0, 0, t.length}, {0, 0, t.flute_length}, t.shank_diameter/2, t.shank_diameter/2, 32);
-            auto flutes = geom::make_cone( {0, 0, t.flute_length}, {0, 0, 0}, t.diameter/2, t.diameter/2, 32);
-            _toolmodel = flutes;
-            _tool_shank = shank;
+            // TODO ???
             break;
         }
         case machine_type::lathe: {
@@ -283,9 +349,17 @@ void rs274_feedrate::tool_change(int slot) {
     }
 }
 
-rs274_feedrate::rs274_feedrate(boost::program_options::variables_map& vm, const std::string& stock_filename)
- : rs274_base(vm) {
-    std::ifstream is(stock_filename);
-    throw_if(!(is >> geom::format::off >> _model), "Unable to read stock from file");
+rs274_feedrate::rs274_feedrate(boost::program_options::variables_map& vm, const cxxcam::Bbox& stock, double slice_z)
+ : rs274_base(vm), _stock(stock), _slice_z(slice_z) {
+    using cxxcam::units::length_mm;
+    double z_delta = length_mm(_stock.max.z - _stock.min.z).value();
+    unsigned slices = std::abs(std::floor(z_delta / _slice_z));
+    _slice_z = z_delta / slices;
+
+    double z = length_mm(_stock.min.z).value();
+    for (unsigned i = 0; i < slices; ++i) {
+        _slices[z] = slicing::slice_bbox(z, _stock);
+        z += _slice_z;
+    }
 }
 

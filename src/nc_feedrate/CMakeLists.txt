@@ -13,16 +13,16 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/rs274ngc/include
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
-    ${PROJECT_SOURCE_DIR}/deps/geom/include
+    ${PROJECT_SOURCE_DIR}/deps/clipper
 )
 
-add_executable(nc_feedrate feedrate.cpp rs274_feedrate.cpp ../Simulation.cpp ../Tool.cpp ../Stock.cpp ../print_exception.cpp)
+add_executable(nc_feedrate feedrate.cpp rs274_feedrate.cpp ../print_exception.cpp)
 target_link_libraries(nc_feedrate
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}
     ${LUA_LIBRARIES}
     rs274ngc
     cxxcam
-    geom
     nc_base
+    polyclipping
 )

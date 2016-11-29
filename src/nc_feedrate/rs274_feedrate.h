@@ -26,10 +26,11 @@
 #define RS274_FEEDRATE_H_
 #include "base/rs274_base.h"
 #include "cxxcam/Position.h"
-#include "geom/polyhedron.h"
+#include "cxxcam/Bbox.h"
 #include <string>
-#include <vector>
+#include <map>
 #include "base/machine_config.h"
+#include "clipper.hpp"
 
 namespace cxxcam {
 namespace path {
@@ -40,9 +41,11 @@ namespace path {
 class rs274_feedrate : public rs274_base
 {
 private:
-    geom::polyhedron_t _model;
-    geom::polyhedron_t _toolmodel;
-    geom::polyhedron_t _tool_shank;
+    cxxcam::Bbox _stock;
+    // slice represents material from z - z+_slice_z
+    std::map<double, ClipperLib::Paths> _slices;
+    double _slice_z;
+
     struct {
         machine_config::mill_tool mill;
         machine_config::lathe_tool lathe;
@@ -56,7 +59,7 @@ private:
 	virtual void tool_change(int slot);
 
 public:
-	rs274_feedrate(boost::program_options::variables_map& vm, const std::string& stock_filename);
+	rs274_feedrate(boost::program_options::variables_map& vm, const cxxcam::Bbox& stock, double slice_z);
 
 	virtual ~rs274_feedrate() = default;
 };
