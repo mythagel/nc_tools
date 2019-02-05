@@ -40,7 +40,7 @@ void rs274_clipper_path::_arc(const Position& end, const Position& center, const
         throw std::runtime_error("Helix not supported in path");
 
     using namespace cxxcam::path;
-	auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+    auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
 
     if (path_.empty())
         path_.emplace_back();
@@ -57,7 +57,7 @@ void rs274_clipper_path::_linear(const Position& pos) {
     if (std::abs(pos.z - program_pos.z) > 0)
         throw std::runtime_error("Path must be 2d");
 
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+    auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
 
     if (path_.empty())
         path_.emplace_back();

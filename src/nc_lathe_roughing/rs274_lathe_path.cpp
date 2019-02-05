@@ -58,7 +58,7 @@ void rs274_path::_arc(const Position& end, const Position& center, const cxxcam:
         throw std::runtime_error("Single rotation only in path");
 
     using namespace cxxcam::path;
-	auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
+    auto steps = expand_arc(convert(program_pos), convert(end), convert(center), (rotation < 0 ? ArcDirection::Clockwise : ArcDirection::CounterClockwise), plane, std::abs(rotation), {}).path;
 
     for (auto& step : steps) {
         auto& p = step.position;
@@ -72,7 +72,7 @@ void rs274_path::_linear(const Position& pos) {
     if (std::abs(pos.y - program_pos.y) > 0)
         throw std::runtime_error("Path must be 2d");
 
-	auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
+    auto steps = cxxcam::path::expand_linear(convert(program_pos), convert(pos), {}, -1).path;
 
     for (auto& step : steps) {
         auto& p = step.position;

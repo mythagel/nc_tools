@@ -90,7 +90,7 @@ rs274_base::rs274_base(po::variables_map& vm)
     else
         machine_id = machine_config::default_machine(config);
 
-	init();
+    init();
 }
 rs274_base::~rs274_base()
 {
@@ -156,9 +156,9 @@ void rs274_base::apply_spindle_delta(double delta_theta)
 
 void rs274_base::interp_init()
 {
-	_spindle_speed = 0;
-	_spindle_turning = Direction::Stop;
-	_traverse_rate = 60;
+    _spindle_speed = 0;
+    _spindle_turning = Direction::Stop;
+    _traverse_rate = 60;
     _spindle_theta = 0;
 
     switch (machine_config::machine_units(config, machine_id)) {
@@ -523,11 +523,11 @@ Plane rs274_base::plane() const
 }
 Position rs274_base::current_position() const
 {
-	return program_pos;
+    return program_pos;
 }
 Position rs274_base::probe_position() const
 {
-	return probe_pos;
+    return probe_pos;
 }
 double rs274_base::probe_value() const
 {
