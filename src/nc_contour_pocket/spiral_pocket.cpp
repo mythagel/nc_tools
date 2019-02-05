@@ -15,7 +15,7 @@ namespace po = boost::program_options;
 namespace cl = ClipperLib;
 using namespace geometry;
 
-std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path, double tool_offset) {
+std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path, double tool_offset, bool zigzag) {
     auto c = centroid(path);
 
     double scale = 10e12;
@@ -90,17 +90,28 @@ std::vector<std::vector<point_2>> spiral_zigzag(const std::vector<point_2>& path
         auto dist_start = distance(unscale_point(it_min_start->front()), current_point);
         auto dist_end = distance(unscale_point(it_min_end->back()), current_point);
 
-        auto it = dist_start < dist_end ? it_min_start : it_min_end;
+        auto it = [&] {
+            if (zigzag)
+                return dist_start < dist_end ? it_min_start : it_min_end;
+            else
+                return it_min_start;
+        }();
+
         auto path = *it;
         paths.erase(it);
 
-        double dist;
-        if (dist_end < dist_start) {
-            ReversePath(path);
-            dist = dist_end;
-        } else {
-            dist = dist_start;
-        }
+        double dist = [&] {
+            if (zigzag && (dist_end < dist_start)) {
+                ReversePath(path);
+                return dist_end;
+            } else if (zigzag) {
+                return dist_start;
+            } else if (dist_end < dist_start) {
+                return dist_end;
+            } else {
+                return dist_start;
+            }
+        }();
 
         // TODO how to better characterise this constant?
         // Represents the threshold of distance between two paths
@@ -190,6 +201,7 @@ int main(int argc, char* argv[]) {
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("retract_z,t", po::value<double>()->default_value(1.0), "Z Tool retract")
         ("clearance,c", po::value<double>(), "Roughing clearance")
+        ("zigzag,g", "Zigzag spiral")
     ;
 
     try {
@@ -277,7 +289,7 @@ int main(int argc, char* argv[]) {
                 return scaled;
             }();
 
-            const auto paths = spiral_zigzag(scaled_path, tool_offset);
+            const auto paths = spiral_zigzag(scaled_path, tool_offset, vm.count("zigzag"));
 
             // Sprial morph not ready.
             //auto paths = spiral_morph(scaled_path, tool_offset);
