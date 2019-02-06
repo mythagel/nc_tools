@@ -40,14 +40,10 @@ int main(int argc, char* argv[]) {
         double stepdown = vm["stepdown"].as<double>();
         double f = vm["feedrate"].as<double>();
 
-        std::cerr << "reading model...";
         geom::polyhedron_t model;
         throw_if(!(std::cin >> geom::format::off >> model), "Unable to read model from file");
-        std::cerr << "done.\n";
 
-        std::cerr << "calculating bounds...";
         auto bbox = geom::bounding_box(model);
-        std::cerr << "done.\n";
         double model_z = bbox.max.z - bbox.min.z;
 
         const unsigned n_steps = [&] {
@@ -59,7 +55,6 @@ int main(int argc, char* argv[]) {
         double z0 = bbox.max.z;
         for (unsigned step = 0; step < n_steps; ++step, z0 -= step_z) {
             double z1 = z0 - step_z;
-            std::cerr << "Z: " << z1 << "\n";
 
             auto slice_bounds = geom::make_box({bbox.min.x, bbox.min.y, z1}, {bbox.max.x, bbox.max.y, z0});
             auto slice = geom::projection_xy(model * slice_bounds);
