@@ -40,6 +40,8 @@ Implemented utilities
  * nc_shortlines
     * split incoming gcode into short line segments
     * ~~cli option --arc-only~~
+ * nc_slice
+    * Segments a 3d model into 2d slices for further processing
 
 
 ~~not implemented / not complete~~
