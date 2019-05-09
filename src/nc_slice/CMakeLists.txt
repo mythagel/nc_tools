@@ -13,6 +13,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/deps/cxxcam/include
     ${PROJECT_SOURCE_DIR}/deps/geom/include
+    ${PROJECT_SOURCE_DIR}/deps/clipper
 )
 
 add_executable(nc_slice slice.cpp ../print_exception.cpp)
@@ -22,4 +23,5 @@ target_link_libraries(nc_slice
     ${LUA_LIBRARIES}
     nc_base
     geom
+    polyclipping
 )

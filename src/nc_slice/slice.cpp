@@ -7,13 +7,16 @@
 #include "../throw_if.h"
 #include "../r6.h"
 #include "base/machine_config.h"
+#include "clipper.hpp"
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <lua.hpp>
 
 namespace po = boost::program_options;
+namespace cl = ClipperLib;
 
 int main(int argc, char* argv[]) {
     po::options_description options("nc_slice");
@@ -25,6 +28,7 @@ int main(int argc, char* argv[]) {
         ("help,h", "display this help and exit")
         ("feedrate,f", po::value<double>()->required(), "Feed rate")
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
+        ("stock", po::value<std::string>(), "Stock model file")
     ;
 
     try {
@@ -43,6 +47,13 @@ int main(int argc, char* argv[]) {
         geom::polyhedron_t model;
         throw_if(!(std::cin >> geom::format::off >> model), "Unable to read model from file");
 
+        geom::polyhedron_t stock;
+        bool has_stock = vm.count("stock");
+        if (has_stock) {
+            std::ifstream is(vm["stock"].as<std::string>());
+            throw_if(!(is >> geom::format::off >> stock), "Unable to read stock from file");
+        }
+
         auto bbox = geom::bounding_box(model);
         double model_z = bbox.max.z - bbox.min.z;
 
@@ -58,6 +69,47 @@ int main(int argc, char* argv[]) {
 
             auto slice_bounds = geom::make_box({bbox.min.x, bbox.min.y, z1}, {bbox.max.x, bbox.max.y, z0});
             auto slice = geom::projection_xy(model * slice_bounds);
+
+            // If a stock model has been provided, calculate the slice of material to be removed
+            if (has_stock) {
+                auto stock_slice = geom::projection_xy(stock * slice_bounds);
+
+                double scale = 10e12;
+                auto scale_point = [scale] (const geom::polygon_t::point& point){
+                    return cl::IntPoint(point.x * scale, point.y * scale);
+                };
+                auto unscale_point = [&](const cl::IntPoint& p) -> geom::polygon_t::point {
+                    return {static_cast<double>(p.X)/scale, static_cast<double>(p.Y)/scale};
+                };
+                auto scale_paths = [scale_point] (const std::vector<geom::polygon_t>& polygons) {
+                    cl::Paths paths;
+                    for (auto& polygon : polygons) {
+                        for (auto& poly : polygon.polygons) {
+                            paths.emplace_back();
+                            for (auto& p : poly)
+                                paths.back().push_back(scale_point(p));
+                        }
+                    }
+                    return paths;
+                };
+
+                cl::Clipper clpr;
+                clpr.AddPaths(scale_paths(stock_slice), cl::ptSubject, true);
+                clpr.AddPaths(scale_paths(slice), cl::ptClip, true);
+
+                cl::Paths solution;
+                clpr.Execute(cl::ctDifference, solution);
+
+                slice.clear();
+                for (auto path : solution) {
+                    geom::polygon_t poly;
+                    poly.polygons.emplace_back();
+                    for (auto point : path) {
+                        poly.polygons.back().push_back(unscale_point(point));
+                    }
+                    slice.push_back(poly);
+                }
+            }
 
             auto output_slice = [&](const geom::polygon_t::polygon& path) {
                 bool rapid_to_first = true;
