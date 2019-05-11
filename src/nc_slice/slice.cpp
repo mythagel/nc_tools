@@ -81,12 +81,12 @@ int main(int argc, char* argv[]) {
                 auto unscale_point = [&](const cl::IntPoint& p) -> geom::polygon_t::point {
                     return {static_cast<double>(p.X)/scale, static_cast<double>(p.Y)/scale};
                 };
-                auto scale_paths = [scale_point] (const std::vector<geom::polygon_t>& polygons) {
+                auto scale_paths = [scale_point] (const std::vector<geom::polygon_tree_t>& polygons) {
                     cl::Paths paths;
                     for (auto& polygon : polygons) {
                         for (auto& poly : polygon.polygons) {
                             paths.emplace_back();
-                            for (auto& p : poly)
+                            for (auto& p : poly.points)
                                 paths.back().push_back(scale_point(p));
                         }
                     }
@@ -102,25 +102,25 @@ int main(int argc, char* argv[]) {
 
                 slice.clear();
                 for (auto path : solution) {
-                    geom::polygon_t poly;
+                    geom::polygon_tree_t poly;
                     poly.polygons.emplace_back();
                     for (auto point : path) {
-                        poly.polygons.back().push_back(unscale_point(point));
+                        poly.polygons.back().points.push_back(unscale_point(point));
                     }
                     slice.push_back(poly);
                 }
             }
 
-            auto output_slice = [&](const geom::polygon_t::polygon& path) {
+            auto output_slice = [&](const geom::polygon_t& path) {
                 bool rapid_to_first = true;
-                for (auto& p : path) {
+                for (auto& p : path.points) {
                     if (rapid_to_first) {
                         std::cout << "G00 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(z1) << "\n";
                         rapid_to_first = false;
                     }
                     std::cout << "G01 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(z1) << " F" << r6(f) << "\n";
                 }
-                    std::cout << "G01 X" << r6(path.front().x) << " Y" << r6(path.front().y) << " Z" << r6(z1) << " F" << r6(f) << "\n";
+                    std::cout << "G01 X" << r6(path.points.front().x) << " Y" << r6(path.points.front().y) << " Z" << r6(z1) << " F" << r6(f) << "\n";
             };
 
             for (auto& polygon : slice)
