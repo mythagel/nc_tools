@@ -15,6 +15,16 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/clipper
 )
 
+add_executable(nc_contour_offset contour_offset.cpp rs274_clipper_path.cpp ../print_exception.cpp)
+target_link_libraries(nc_contour_offset
+    ${Boost_LIBRARIES}
+    ${LUA_LIBRARIES}
+    rs274ngc
+    cxxcam
+    nc_base
+    polyclipping
+)
+
 add_executable(nc_contour_pocket contour_pocket.cpp rs274_clipper_path.cpp ../print_exception.cpp)
 target_link_libraries(nc_contour_pocket
     ${Boost_LIBRARIES}

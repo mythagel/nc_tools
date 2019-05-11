@@ -27,6 +27,7 @@
 #include "base/rs274_base.h"
 #include "cxxcam/Math.h"
 #include "clipper.hpp"
+#include <functional>
 
 class rs274_clipper_path : public rs274_base
 {
@@ -35,12 +36,15 @@ private:
     virtual void _rapid(const Position&);
     virtual void _arc(const Position& end, const Position& center, const cxxcam::math::vector_3& plane, int rotation);
     virtual void _linear(const Position& pos);
+    virtual void program_end();
 
     ClipperLib::Paths path_;
+    std::function<void(ClipperLib::Paths, double z)> new_path_;
 public:
 	rs274_clipper_path(boost::program_options::variables_map& vm);
 
     ClipperLib::Paths path() const;
+    void set_callback(std::function<void(ClipperLib::Paths, double z)> new_path);
 
     ClipperLib::IntPoint scale_point(const cxxcam::math::point_3& p) const;
     double scale() const {

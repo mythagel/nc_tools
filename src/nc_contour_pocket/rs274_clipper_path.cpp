@@ -29,7 +29,14 @@
 using namespace ClipperLib;
 
 
-void rs274_clipper_path::_rapid(const Position&) {
+void rs274_clipper_path::_rapid(const Position& pos) {
+    if (new_path_ && std::abs(pos.z - program_pos.z) > 0) {
+        if (! path_.empty()) {
+            new_path_(path_, program_pos.z);
+            path_.clear();
+        }
+    }
+
     if (path_.empty() || !path_.back().empty())
         path_.emplace_back();
 }
@@ -67,6 +74,13 @@ void rs274_clipper_path::_linear(const Position& pos) {
     }
 }
 
+void rs274_clipper_path::program_end() {
+    if (new_path_ && ! path_.empty()) {
+        new_path_(path_, program_pos.z);
+        path_.clear();
+    }
+}
+
 rs274_clipper_path::rs274_clipper_path(boost::program_options::variables_map& vm)
  : rs274_base(vm) {
 }
@@ -87,4 +101,8 @@ IntPoint rs274_clipper_path::scale_point(const cxxcam::math::point_3& p) const {
 
 Paths rs274_clipper_path::path() const {
     return path_;
+}
+
+void rs274_clipper_path::set_callback(std::function<void(ClipperLib::Paths, double z)> new_path) {
+    new_path_ = new_path;
 }
