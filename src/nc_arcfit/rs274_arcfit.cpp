@@ -45,22 +45,22 @@ geometry_3::point_3 rs274_arcfit::to_point_3(const cxxcam::Position& pos) {
 }
 
 void rs274_arcfit::_rapid(const Position&) {
-    point = boost::none;
+    point_ = {};
 }
 
 void rs274_arcfit::_arc(const Position&, const Position&, const cxxcam::math::vector_3&, int) {
-    point = boost::none;
+    point_ = {};
 }
 
 void rs274_arcfit::_linear(const Position& pos) {
-    // record motion point here
-    point = block_point();
-    point->l.a = to_point_3(convert(program_pos));
-    point->l.b = to_point_3(convert(pos));
+    // record motion point here ...
+    point_ = block_point();
+    point_->p0 = to_point_3(convert(program_pos));
+    point_->p = to_point_3(convert(pos));
 }
 
 void rs274_arcfit::block_end(const block_t& block) {
-    // but process it here iff the block describes simple linear motion
+    // ... but process it here iff the block describes simple linear motion
     enum {
         G_1 = 10
     };
@@ -86,21 +86,21 @@ void rs274_arcfit::block_end(const block_t& block) {
     };
 
     
-    if (is_linear(block) && point) {
-        point->block = block;
-        push(*point);
+    if (is_linear(block) && point_) {
+        point_->block = block;
+        push(*point_);
     } else {
         flush(true);
         std::cout << str(block) << "\n";
     }
-    point = boost::none;
+    point_ = {};
 }
 void rs274_arcfit::program_end() {
     flush(true);
 }
 
 void rs274_arcfit::reset() {
-    state = State::indeterminate;
+    state_ = State::indeterminate;
 }
 
 template <typename T>
@@ -116,11 +116,11 @@ void rs274_arcfit::push(const block_point& point) {
 
         if (!points.empty()) {
             auto& point = points[0];
-            radius = std::abs(distance(point.l.a, center));
+            radius = std::abs(distance(point.p, center));
         }
 
         for (auto& point : points) {
-            auto r = std::abs(distance(point.l.b, center));
+            auto r = std::abs(distance(point.p, center));
             sum += std::abs(r - radius);
         }
         return sum;
@@ -128,21 +128,24 @@ void rs274_arcfit::push(const block_point& point) {
 
     auto chord_height_sum = [](const std::vector<block_point>& points, double r) {
         double chs = 0;
-        for (auto& bp : points)
-            chs += chord_height(bp.l.a, bp.l.b, r);
+        auto prev = points[0];
+        for (auto& bp : points) {
+            chs += chord_height(prev.p, bp.p, r);
+            prev = bp;
+        }
         return chs;
     };
 
     auto arc_direction = [&](const geometry_3::point_3& p0, const geometry_3::point_3& p1) {
-        auto a = p0 - arc.center;
-        auto b = p1 - arc.center;
+        auto a = p0 - arc_.center;
+        auto b = p1 - arc_.center;
         auto dir = boost::math::sign(a.x*b.y - a.y*b.x);
         return -dir;
     };
 
     auto delta_theta = [&] (const geometry_3::point_3& p0, const geometry_3::point_3& p1, int dir) {
-        auto t0 = theta(p0, arc.center);
-        auto t1 = theta(p1, arc.center);
+        auto t0 = theta(p0, arc_.center);
+        auto t1 = theta(p1, arc_.center);
         auto dt = t1 - t0;
         switch(dir)
         {
@@ -166,17 +169,17 @@ void rs274_arcfit::push(const block_point& point) {
         return dt;
     };
 
-    switch (state)
+    switch (state_)
     {
         case State::indeterminate:
         {
-            arc.points.push_back(point);
+            arc_.points.push_back(point);
 
-            if (arc.points.size() < 2)
+            if (arc_.points.size() < 3)
                 return;
-            auto p0 = arc.points[0].l.a;
-            auto p1 = arc.points[0].l.b;
-            auto p2 = arc.points[1].l.b;
+            auto p0 = arc_.points[0].p0;
+            auto p1 = arc_.points[0].p;
+            auto p2 = arc_.points[1].p;
 
             // 0. Verify points are not collinear
             if (collinear(p0, p1, p2, 1e-6))
@@ -185,40 +188,39 @@ void rs274_arcfit::push(const block_point& point) {
             // 1. Determine arc plane
             // TODO handle XZ and YZ planes
             // remembering to map to xy when calculating circle center!
-            arc.plane = geometry_3::plane(p0, p1, p2);
-            if (! equal(std::abs(arc.plane.z), 1.0, planar_tolerance))
+            arc_.plane = geometry_3::plane(p0, p1, p2);
+            if (! equal(std::abs(arc_.plane.z), 1.0, planar_tolerance))
                 return flush();
 
             // 2. Determine center point
             auto center = circle_center(p0, p1, p2);
             if (!center)
                 return flush();
-            arc.center = *center;
+            arc_.center = *center;
 
             // 3. Determine radius
-            arc.r = std::abs(distance(p0, arc.center));
+            arc_.r = std::abs(distance(p0, arc_.center));
 
             // 4. Validate chord height
-            auto h0 = chord_height(p0, p1, arc.r);
-            auto h1 = chord_height(p1, p2, arc.r);
+            auto h0 = chord_height(p0, p1, arc_.r);
+            auto h1 = chord_height(p1, p2, arc_.r);
             if (h0 > chord_height_tolerance || h1 > chord_height_tolerance)
                 return flush();
 
             // 5. Determine arc direction
-            arc.dir = arc_direction(p0, p1);
+            arc_.dir = arc_direction(p0, p1);
 
             // 4. Update arc theta
-            arc.arc_theta = delta_theta(p0, p1, arc.dir);
+            arc_.arc_theta = delta_theta(p0, p1, arc_.dir);
 
-            state = State::collecting_points;
+            state_ = State::collecting_points;
             break;
         }
         case State::collecting_points:
         {
-
-            auto pn_2 = arc.points.back().l.a;
-            auto pn_1 = arc.points.back().l.b;
-            auto pn = point.l.b;
+            auto pn_2 = arc_.points[arc_.points.size() - 2].p;
+            auto pn_1 = arc_.points[arc_.points.size() - 1].p;
+            auto pn = point.p;
 
             // 0. Verify point is not collinear
             if (collinear(pn_2, pn_1, pn, 1e-6))
@@ -228,81 +230,83 @@ void rs274_arcfit::push(const block_point& point) {
             // TODO handle XZ and YZ planes
             // remembering to map to xy when calculating circle center!
             auto plane = geometry_3::plane(pn_2, pn_1, pn);
-            if (! equal(std::abs(plane.z), std::abs(arc.plane.z), planar_tolerance))
+            if (! equal(std::abs(plane.z), std::abs(arc_.plane.z), planar_tolerance))
                 return flush();
 
             // 2. Center point is known
 
             // 3. Verify point radius
-            auto r = std::abs(distance(pn, arc.center));
-            if (std::abs(arc.r - r) > point_deviation)
+            auto r = std::abs(distance(pn, arc_.center));
+            if (std::abs(arc_.r - r) > point_deviation)
                 flush();
 
             // TODO find exact point on arc relative to arc point tolerance
             
             // 4. Validate chord height
-            auto ch = chord_height(pn_1, pn, arc.r);
+            auto ch = chord_height(pn_1, pn, arc_.r);
             if (ch > chord_height_tolerance)
                 return flush();
 
             // 3. Determine arc direction
             auto dir = arc_direction(pn_1, pn);
-            if (dir != arc.dir)
+            if (dir != arc_.dir)
                 return flush();
 
             // 4. Update arc theta
-            auto dt = delta_theta(pn_1, pn, arc.dir);
+            auto dt = delta_theta(pn_1, pn, arc_.dir);
 
             //if (arc.arc_theta + dt > 2*PI)
             //    return flush();
 
             {
-                auto p0 = arc.points[0].l.a;
+                auto p0 = arc_.points[0].p0;
                 // ...
-                auto pmid = arc.points[arc.points.size()/2].l.b;
+                auto pmid = arc_.points[arc_.points.size()/2].p;
                 // ...
-                auto pn_1 = arc.points[arc.points.size()-1].l.b;
-                auto pn = point.l.b;
+                auto pn_1 = arc_.points[arc_.points.size() - 1].p;
+                auto pn = point.p;
 
                 auto center = circle_center(p0, pmid, pn_1);
+                if (! center)
+                    return flush();
 
-                auto r0 = std::abs(distance(pn, arc.center));
+                auto r0 = std::abs(distance(pn, arc_.center));
                 auto r1 = std::abs(distance(pn, *center));
 
-                if (arc.minimise == Arc::radiusDelta) {
-                    auto dr0 = radius_delta_sum(arc.points, arc.center);
-                    auto dr1 = radius_delta_sum(arc.points, *center);
+                if (arc_.minimise == Arc::radiusDelta) {
+                    auto dr0 = radius_delta_sum(arc_.points, arc_.center);
+                    auto dr1 = radius_delta_sum(arc_.points, *center);
 
                     if (dr1 < dr0) {
-                        arc.center = *center;
-                        arc.r = r1;
+                        arc_.center = *center;
+                        arc_.r = r1;
                     }
-                } else if (arc.minimise == Arc::chordHeight) {
-                    auto ch0 = chord_height_sum(arc.points, r0);
-                    auto ch1 = chord_height_sum(arc.points, r1);
+                } else if (arc_.minimise == Arc::chordHeight) {
+                    auto ch0 = chord_height_sum(arc_.points, r0);
+                    auto ch1 = chord_height_sum(arc_.points, r1);
 
                     if (ch1 < ch0) {
-                        arc.center = *center;
-                        arc.r = r1;
+                        arc_.center = *center;
+                        arc_.r = r1;
                     }
                 }
             }
 
-            arc.arc_theta += dt;
-            arc.points.push_back(point);
+            arc_.arc_theta += dt;
+            arc_.points.push_back(point);
             break;
         }
     }
 }
 void rs274_arcfit::flush(bool all) {
-    switch (state)
+    switch (state_)
     {
         case State::indeterminate:
         {
-            while (!arc.points.empty()) {
-                auto& block = arc.points[0].block;
+            while (!arc_.points.empty()) {
+                auto& block = arc_.points[0].block;
                 std::cout << str(block) << "\n";
-                arc.points.erase(begin(arc.points));
+                arc_.points.erase(begin(arc_.points));
 
                 if (!all) break;
             }
@@ -311,25 +315,31 @@ void rs274_arcfit::flush(bool all) {
         case State::collecting_points:
         {
             auto flush_arc = [&]() {
-                return arc.arc_theta > theta_minimum;
+                return arc_.arc_theta > theta_minimum;
             };
             if (flush_arc()) {
                 block_t block;
 
-                if (arc.dir == 1)
+                if (arc_.dir == 1)
                     block.g_modes[1] = 20; // G2
                 else
                     block.g_modes[1] = 30; // G3
 
 
-                auto p0 = arc.points[0].l.a;
-                auto p1 = arc.points[arc.points.size()-1].l.b;
+                auto p0 = arc_.points[0].p0;
+                auto pn = arc_.points[arc_.points.size()-1].p;
+
+                // Calculate radius to higher precision
+                arc_.r = 0;
+                for (auto& block : arc_.points)
+                    arc_.r += std::abs(distance(block.p, arc_.center));
+                arc_.r /= arc_.points.size();
 
                 // Normalise end point
                 {
-                    auto t1 = theta(p1, arc.center);
-                    p1.x = arc.center.x + (arc.r * std::cos(t1));
-                    p1.y = arc.center.y + (arc.r * std::sin(t1));
+                    long double t1 = theta(pn, arc_.center);
+                    pn.x = arc_.center.x + (arc_.r * std::cos(t1));
+                    pn.y = arc_.center.y + (arc_.r * std::sin(t1));
                 }
 
                 auto map_units = [&](double value) {
@@ -356,16 +366,16 @@ void rs274_arcfit::flush(bool all) {
                     }
                 };
                 // TODO use current arc incremental / absolute mode
-                block.x = map_units(p1.x);
-                block.y = map_units(p1.y);
-                block.i = map_units(arc.center.x - p0.x);
-                block.j = map_units(arc.center.y - p0.y);
+                block.x = map_units(pn.x);
+                block.y = map_units(pn.y);
+                block.i = map_units(arc_.center.x - p0.x);
+                block.j = map_units(arc_.center.y - p0.y);
                 block.f = _feed_rate;
 
                 std::cout << str(block) << "\n";
-                arc.points.clear();
+                arc_.points.clear();
             }
-            state = State::indeterminate;
+            state_ = State::indeterminate;
             return flush(all);
             break;
         }
