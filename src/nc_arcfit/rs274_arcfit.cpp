@@ -330,17 +330,10 @@ void rs274_arcfit::flush(bool all) {
                 auto pn = arc_.points[arc_.points.size()-1].p;
 
                 // Calculate radius to higher precision
-                arc_.r = 0;
+                arc_.r = std::abs(distance(arc_.points[0].p0, arc_.center));
                 for (auto& block : arc_.points)
                     arc_.r += std::abs(distance(block.p, arc_.center));
-                arc_.r /= arc_.points.size();
-
-                // Normalise end point
-                {
-                    long double t1 = theta(pn, arc_.center);
-                    pn.x = arc_.center.x + (arc_.r * std::cos(t1));
-                    pn.y = arc_.center.y + (arc_.r * std::sin(t1));
-                }
+                arc_.r /= (arc_.points.size() + 1);
 
                 auto map_units = [&](double value) {
                     using namespace cxxcam::units;
