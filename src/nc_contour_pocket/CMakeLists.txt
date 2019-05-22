@@ -44,3 +44,13 @@ target_link_libraries(nc_spiral_pocket
     nc_base
     polyclipping
 )
+
+add_executable(nc_contour_spiral contour_spiral.cpp rs274_clipper_path.cpp ../print_exception.cpp)
+target_link_libraries(nc_contour_spiral
+    ${Boost_LIBRARIES}
+    ${LUA_LIBRARIES}
+    rs274ngc
+    cxxcam
+    nc_base
+    polyclipping
+)
