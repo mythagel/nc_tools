@@ -162,6 +162,21 @@ int main(int argc, char* argv[]) {
             clipper.AddPaths(segment, cl::ptClip, true);
             clipper.Execute(cl::ctIntersection, pt);
 
+            // Lazy scan as the number of drill locations is likely to be small
+            unsigned num_holes = 0;
+            for(auto node = pt.GetFirst(); node; node = node->GetNext()) {
+                auto& path = node->Contour;
+                for(auto& point : path) {
+                    if (!original_point(point)) continue;
+                    ++num_holes;
+                }
+            }
+
+            double hole_area = PI*((drill_d/2) * (drill_d/2));
+            double open_area = hole_area * num_holes;
+            double closed_area = geometry::area(path);
+            std::cout << "( open: " << (open_area / closed_area) * 100.0 << "% )\n";
+
             for(auto node = pt.GetFirst(); node; node = node->GetNext()) {
                 auto& path = node->Contour;
                 for(auto& point : path) {

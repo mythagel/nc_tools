@@ -87,6 +87,17 @@ inline point_2 centroid(const std::vector<point_2>& polygon) {
     return c;
 }
 
+inline double area(const std::vector<point_2>& polygon) {
+    // Shoelace
+    double area = 0;
+    for (unsigned i = 0; i < polygon.size(); ++i) {
+        double j = (i+1) % polygon.size();
+        area += polygon[i].x * polygon[j].y;
+        area -= polygon[i].y * polygon[j].x;
+    }
+    return area/2;
+}
+
 inline point_2 nearest_point(const line_segment_2& l, const point_2& p) {
     auto l2 = squared_length(l);
     if (l2 == 0) return l.a;
