@@ -42,6 +42,10 @@ Implemented utilities
     * ~~cli option --arc-only~~
  * nc_slice
     * Segments a 3d model into 2d slices for further processing
+ * nc_contour_drill
+    * Generate a drill pattern bounded by the input gcode path
+ * nc_contour_offset
+    * Generate contour parallel offsets from gcode path
 
 
 ~~not implemented / not complete~~
@@ -67,6 +71,10 @@ Implemented utilities
     * G70/G71 canned cycle style lathe roughing generator 
  * ~~nc_blueprint~~
     * Generate SVG blueprint with 3 ortho + perspective view of gcode / model.
+ * ~~nc_annotate~~
+    * Analyses and adds annotations to input gcode, e.g. path continuity
+ * ~~nc_contour_spiral~~
+    * Generate spiral toolpaths from gcode path
 
 Generators
 ==========
