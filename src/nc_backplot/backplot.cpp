@@ -285,6 +285,7 @@ int main(int argc, char* argv[]) {
 
         viewer.setCameraManipulator(new osgGA::TrackballManipulator);
         viewer.getCameraManipulator()->setHomePosition({0, 0, 100}, {0,0,0}, {0,0,1}, false);
+        viewer.setLightingMode(osg::View::LightingMode::NO_LIGHT);
         osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
         viewer.addEventHandler(statesetManipulator.get());
 
