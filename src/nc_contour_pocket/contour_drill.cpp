@@ -38,6 +38,55 @@ std::vector<cl::Paths> segment_paths(cl::Paths paths) {
     return segments;
 }
 
+cl::Paths generate_circular_drill_pattern(double radius, double drill_d, double offset, point_2 centroid, double scale) {
+    auto scale_point = [&](const point_2& p) -> cl::IntPoint {
+        return cl::IntPoint(p.x * scale, p.y * scale);
+    };
+
+    cl::Paths paths;
+    paths.emplace_back();
+
+    double inscribed_radius = 0;
+    double inscribed_offset = drill_d * offset;
+    while (inscribed_radius < radius) {
+
+        unsigned n_holes = std::floor((2*PI * inscribed_radius) / inscribed_offset);
+        auto theta = 2*PI / n_holes;
+        double t = 0;
+
+        if (n_holes == 0) {
+            paths.back().push_back(scale_point({centroid.x, centroid.y}));
+        }
+        for (unsigned i = 0; i < n_holes; ++i, t += theta) {
+            auto x = inscribed_radius * std::cos(t);
+            auto y = inscribed_radius * std::sin(t);
+            paths.back().push_back(scale_point({x + centroid.x, y + centroid.y}));
+        }
+        inscribed_radius += inscribed_offset;
+    }
+
+    return paths;
+}
+
+cl::Paths generate_offset_drill_pattern(double radius, double drill_d, double offset, point_2 centroid, double scale) {
+    auto scale_point = [&](const point_2& p) -> cl::IntPoint {
+        return cl::IntPoint(p.x * scale, p.y * scale);
+    };
+
+    cl::Paths paths;
+    paths.emplace_back();
+
+    double inscribed_offset = drill_d * offset;
+    for (int y = -radius; y < radius; ++y) {
+        for (int x = -radius; x < radius; ++x) {
+            double y_off = (x % 2) == 0 ? inscribed_offset/2 : 0;
+            paths.back().push_back(scale_point({(x*inscribed_offset) + centroid.x, (y*inscribed_offset) + y_off + centroid.y}));
+        }
+    }
+
+    return paths;
+}
+
 int main(int argc, char* argv[]) {
     po::options_description options("nc_contour_drill");
     std::vector<std::string> args(argv, argv + argc);
@@ -51,6 +100,7 @@ int main(int argc, char* argv[]) {
         ("drill_z,z", po::value<double>()->required(), "Z drill depth")
         ("feedrate,f", po::value<double>()->required(), "Feedrate")
         ("retract_z,t", po::value<double>()->required(), "Z Tool retract height")
+        ("circular,c", "Circular drill pattern")
     ;
 
     try {
@@ -95,9 +145,6 @@ int main(int argc, char* argv[]) {
         auto unscale_point = [&](const cl::IntPoint& p) -> geometry::point_2 {
             return {static_cast<double>(p.X) / nc_path.scale(), static_cast<double>(p.Y) / nc_path.scale()};
         };
-        auto scale_point = [&](const point_2& p) -> cl::IntPoint {
-            return cl::IntPoint(p.x * nc_path.scale(), p.y * nc_path.scale());
-        };
 
         auto segments = segment_paths(nc_path.path());
         for (auto& segment : segments) {
@@ -136,26 +183,10 @@ int main(int argc, char* argv[]) {
                 return false;
             };
 
-            paths.emplace_back();
-
-            double inscribed_radius = 0;
-            double inscribed_offset = drill_d * offset;
-            while (inscribed_radius < radius) {
-
-                unsigned n_holes = std::floor((2*PI * inscribed_radius) / inscribed_offset);
-                auto theta = 2*PI / n_holes;
-                double t = 0;
-
-                if (n_holes == 0) {
-                    paths.back().push_back(scale_point({centroid.x, centroid.y}));
-                }
-                for (unsigned i = 0; i < n_holes; ++i, t += theta) {
-                    auto x = inscribed_radius * std::cos(t);
-                    auto y = inscribed_radius * std::sin(t);
-                    paths.back().push_back(scale_point({x + centroid.x, y + centroid.y}));
-                }
-                inscribed_radius += inscribed_offset;
-            }
+            if(vm.count("circular"))
+                paths = generate_circular_drill_pattern(radius, drill_d, offset, centroid, nc_path.scale());
+            else
+                paths = generate_offset_drill_pattern(radius, drill_d, offset, centroid, nc_path.scale());
 
             cl::Clipper clipper;
             clipper.AddPaths(paths, cl::ptSubject, false);
@@ -182,7 +213,7 @@ int main(int argc, char* argv[]) {
                 for(auto& point : path) {
                     if (!original_point(point)) continue;
                     auto p = unscale_point(point);
-                    std::cout << "G83 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(drill_z) << "  R" << r6(retract_z) << " Q0.5 F" << r6(feedrate) << '\n';
+                    std::cout << "G83 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(drill_z) << "  R" << r6(retract_z) << " Q" << r6(drill_d) << " F" << r6(feedrate) << '\n';
                 }
                 std::cout << "\n";
             }
