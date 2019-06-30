@@ -29,7 +29,7 @@ std::vector<std::vector<point_2>> contour_offset(const ClipperLib::Paths& paths,
     point_2 current_point = {0, 0};
 
     double offset = 0.0;
-    while (true) {
+    while (offset <= 0) {
 
         toolpaths_levels.emplace_back();
         auto& toolpaths = toolpaths_levels.back();
