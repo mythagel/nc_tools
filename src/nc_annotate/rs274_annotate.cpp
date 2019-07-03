@@ -62,10 +62,9 @@ void rs274_annotate::_linear(const Position& pos) {
 }
 
 void rs274_annotate::block_end(const block_t& block) {
-	std::cout << str(block);
+	std::cout << str(block) << "\n";
 	for (auto& anno : annotations_)
-		std::cout << "(" << anno << ") ";
-	std::cout << "\n";
+		std::cout << "  (" << anno << ")\n";
 
 	annotations_.clear();
 }
@@ -97,7 +96,7 @@ void rs274_annotate::process_point(const cxxcam::math::point_3& p, bool rapid) {
 
         if (isnan(curve) == false) {
             std::ostringstream ss;
-            ss << "R" << r6(curve);
+            ss << "R" << r6(curve);     // Radius of curvature
             annotations_.push_back(ss.str());
         }
     }
