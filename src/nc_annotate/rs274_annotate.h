@@ -36,12 +36,11 @@ private:
 	virtual void _linear(const Position& pos);
 	virtual void block_end(const block_t& block);
 
-	void process_point(const cxxcam::math::point_3& p, bool rapid);
-
 	std::vector<std::string> annotations_;
 
-    // curvature
-    std::vector<cxxcam::math::point_3> points;
+protected:
+	virtual void process_point(const cxxcam::math::point_3& p, bool rapid) =0;
+    void push_annotation(const std::string& annotation);
 
 public:
 	rs274_annotate(boost::program_options::variables_map& vm);

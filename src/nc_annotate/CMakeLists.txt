@@ -16,8 +16,8 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/deps/circle3d
 )
 
-add_executable(nc_annotate annotate.cpp rs274_annotate.cpp ../print_exception.cpp)
-target_link_libraries(nc_annotate
+add_executable(nc_annotate_curvature annotate_curvature.cpp rs274_annotate.cpp ../print_exception.cpp)
+target_link_libraries(nc_annotate_curvature
     ${CMAKE_THREAD_LIBS_INIT}
     ${Boost_LIBRARIES}
     ${LUA_LIBRARIES}
