@@ -59,7 +59,7 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    po::options_description options("nc_annotate");
+    po::options_description options("nc_annotate_curvature");
     std::vector<std::string> args(argv, argv + argc);
     args.erase(begin(args));
 
