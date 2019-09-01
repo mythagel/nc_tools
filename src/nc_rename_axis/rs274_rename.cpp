@@ -119,13 +119,15 @@ void rs274_rename::block_end(const block_t& b) {
         G_0 = 0,
         G_1 = 10,
         G_2 = 20,
-        G_3 = 30
+        G_3 = 30,
+        G_83 = 830
     };
     auto is_motion = [](int motion_to_be){
         return  motion_to_be == G_0 || 
                 motion_to_be == G_1 || 
                 motion_to_be == G_2 || 
-                motion_to_be == G_3;
+                motion_to_be == G_3 ||
+                motion_to_be == G_83;
     };
 
     if (is_motion(block.motion_to_be))
