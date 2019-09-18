@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("stock", po::value<std::string>(), "Stock model file")
         ("offset,o", po::value<double>(), "Generate stock via offset")
+        ("nonmonotonic", "Allow slices to be non-monotonic")
     ;
 
     try {
@@ -44,6 +45,7 @@ int main(int argc, char* argv[]) {
 
         double stepdown = vm["stepdown"].as<double>();
         double f = vm["feedrate"].as<double>();
+        bool monotonic = vm.count("nonmonotonic") == 0;
 
         double scale = 10e12;
         auto scale_point = [scale] (const geom::polygon_t::point& point){
@@ -98,8 +100,9 @@ int main(int argc, char* argv[]) {
         double z0 = bbox.max.z;
         for (unsigned step = 0; step < n_steps; ++step, z0 -= step_z) {
             double z1 = z0 - step_z;
+            double slice_z1 = (monotonic && step > 0) ? bbox.max.z : z1;
 
-            auto slice_bounds = geom::make_box({bbox.min.x, bbox.min.y, z1}, {bbox.max.x, bbox.max.y, z0});
+            auto slice_bounds = geom::make_box({bbox.min.x, bbox.min.y, slice_z1}, {bbox.max.x, bbox.max.y, z0});
             auto slice = geom::projection_xy(model * slice_bounds);
 
             // If stock (model or offset) has been provided, calculate the slice of material to be removed
