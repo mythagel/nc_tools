@@ -45,6 +45,9 @@ int main(int argc, char* argv[]) {
 
             // apply transformations in order
             for (auto& option : parsed.options) {
+                if(option.string_key == "model")
+                    continue;
+
                 auto value = boost::lexical_cast<double>(option.value[0]);
                 if(option.string_key == "translate_x") {
                     model = geom::translate(model, value, 0, 0);
