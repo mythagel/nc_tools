@@ -33,7 +33,6 @@ std::vector<std::vector<point_2>> contour_offset(const ClipperLib::Paths& paths,
 
         toolpaths_levels.emplace_back();
         auto& toolpaths = toolpaths_levels.back();
-        bool new_path = true;
 
         cl::Paths solution;
         co.Execute(solution, offset * scale);
@@ -60,21 +59,10 @@ std::vector<std::vector<point_2>> contour_offset(const ClipperLib::Paths& paths,
             double dist = distance(unscale_point(*it_near), current_point);
             std::rotate(begin(path), it_near, end(path));
 
-            // TODO how to better characterise this constant?
-            // Represents the threshold of distance between two paths
-            // which would result in a retract
-            if (dist >= tool_offset*3) {
-                new_path = true;
-            }
-
             // next path closes to start point of this path
             current_point = unscale_point(path.front());
 
-            if (new_path) {
-                toolpaths.emplace_back();
-                new_path = false;
-            }
-
+            toolpaths.emplace_back();
             auto& toolpath = toolpaths.back();
 
             // cannot be reversed this way because path is continuous...
@@ -108,6 +96,7 @@ int main(int argc, char* argv[]) {
         ("tool_r,r", po::value<double>()->required(), "Tool radius")
         ("stepover,s", po::value<double>()->default_value(0.9), "Tool stepover 0.0 - 1.0")
         ("feedrate,f", po::value<double>()->required(), "Feedrate")
+        ("retract_z,t", po::value<double>(), "Z Tool retract")
     ;
 
     try {
@@ -151,6 +140,11 @@ int main(int argc, char* argv[]) {
 
                 for(auto& p : path) {
                     std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(z) << "\n";
+                }
+
+                if (vm.count("retract_z")) {
+                    double retract_z = vm["retract_z"].as<double>();
+                    std::cout << "G0 z" << r6(retract_z) << "\n";
                 }
             }
             std::cout << "\n";
