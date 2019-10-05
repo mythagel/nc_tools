@@ -46,6 +46,8 @@ Implemented utilities
     * Generate a drill pattern bounded by the input gcode path
  * nc_contour_offset
     * Generate contour parallel offsets from gcode path
+ * nc_linear_ramp
+    * Convert plunge into linear ramp along path
 
 
 ~~not implemented / not complete~~
