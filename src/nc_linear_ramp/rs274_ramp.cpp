@@ -84,14 +84,16 @@ void rs274_ramp::_linear(const Position& pos) {
 
             cxxcam::path::step prev = ramp_steps.front();
             cxxcam::units::length dist;
+            cxxcam::units::length h(0.5 * cxxcam::units::millimeter);   // TODO calculate
 
             while (Z > m_ramp.Z) {
                 auto step = ramp_steps[step_index];
+                auto step_delta = cxxcam::math::distance(prev.position, step.position);
 
-                Z = (std::sin(deg2rad(m_angle)) * dist);
-                if (Z.value() < 0)
-                    Z = -Z;
-                Z = m_start.Z - Z;
+                auto z = (std::sin(deg2rad(m_angle)) * step_delta);
+                if (z.value() < 0)
+                    z = -z;
+                Z -= z;
                 if (Z <= m_ramp.Z)
                     Z = m_ramp.Z;
 
@@ -99,13 +101,14 @@ void rs274_ramp::_linear(const Position& pos) {
 
                 output_point(step.position);
 
-                dist += cxxcam::math::distance(prev.position, step.position);
-                prev = step;
+                dist += step_delta;
+                prev = ramp_steps[step_index];
 
                 step_index += direction;
                 if (static_cast<unsigned>(step_index) == ramp_steps.size() || step_index == -1) {
                     direction = -direction;
                     step_index += direction*2;
+                    Z += h;
                 }
             }
 
