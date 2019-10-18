@@ -84,7 +84,11 @@ void rs274_ramp::_linear(const Position& pos) {
 
             cxxcam::path::step prev = ramp_steps.front();
             cxxcam::units::length dist;
-            cxxcam::units::length h(0.5 * cxxcam::units::millimeter);   // TODO calculate
+
+            // TODO lift needed only for non-centercutting tools
+            // at angles which would foul the center of the cutter.
+            // TODO Calculate lift
+            cxxcam::units::length h(0 * cxxcam::units::millimeter);
 
             while (Z > m_ramp.Z) {
                 auto step = ramp_steps[step_index];
