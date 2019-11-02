@@ -9,6 +9,7 @@
 #include <algorithm>
 #include "../r6.h"
 #include "common.h"
+#include "cxxcam/Path.h"
 
 namespace po = boost::program_options;
 namespace cl = ClipperLib;
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
         ("stepdown,d", po::value<double>()->required(), "Z Stepdown")
         ("retract_z,t", po::value<double>()->default_value(1.0), "Z Tool retract")
         ("climb,c", "Climb mill (Relative to clockwise cutter rotation)")
+        ("spiral", "Spiral stepdown")
     ;
 
     try {
@@ -46,6 +48,7 @@ int main(int argc, char* argv[]) {
         double stepdown = vm["stepdown"].as<double>();
         double retract_z = vm["retract_z"].as<double>();
         bool climb = vm.count("climb");
+        bool spiral = vm.count("spiral");
 
         // TODO read default init line from nc_tools.conf
 //        nc_path.read("G18");
@@ -93,33 +96,90 @@ int main(int argc, char* argv[]) {
         for (auto& path : paths)
             orient_path(path);
 
-        const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
-        const double step_z = cut_z / n_steps;
-
         std::cout << "G0 Z" << r6(retract_z) << "\n";
 
-        double z = step_z;
-        for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
+        if (spiral == false) {
+            const unsigned n_steps = std::abs(std::ceil(cut_z / stepdown));
+            const double step_z = cut_z / n_steps;
 
-            bool rapid_to_first = true;
-            for (auto& path : paths) {
+            double z = step_z;
+            for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
 
-                if (rapid_to_first) {
-                    auto p = unscale_point(path.front());
-                    std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
-                    std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
-                    rapid_to_first = false;
+                bool rapid_to_first = true;
+                for (auto& path : paths) {
+
+                    if (rapid_to_first) {
+                        auto p = unscale_point(path.front());
+                        std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                        std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                        rapid_to_first = false;
+                    }
+
+                    // close path
+                    path.push_back(path.front());
+                    for(auto& point : path) {
+                        auto p = unscale_point(point);
+                        std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                    }
                 }
+                std::cout << "G0 Z" << r6(retract_z) << "\n";
+                std::cout << "\n";
+            }
+        } else {
+            for (auto& path : paths) {
 
                 // close path
                 path.push_back(path.front());
-                for(auto& point : path) {
-                    auto p = unscale_point(point);
-                    std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                bool rapid_to_first = true;
+
+                double L = 0;
+                {
+                    auto prev = unscale_point(path.front());
+                    for(auto& point : path) {
+                        auto p = unscale_point(point);
+                        L += distance(prev, p);
+                        prev = p;
+                    }
                 }
+
+                double z = 0;
+                while (z > cut_z) {
+                    if (rapid_to_first) {
+                        auto p = unscale_point(path.front());
+                        std::cout << "G0 X" << r6(p.x) << " Y" << r6(p.y) << "\n";
+                        std::cout << "G1 Z" << r6(z) << " F" << r6(feedrate/2) << "\n";
+                        rapid_to_first = false;
+                    }
+
+                    auto prev = unscale_point(path.front());
+                    int last_loop_end = -1;
+                    for(unsigned i = 0; i < path.size(); ++i) {
+                        auto p = unscale_point(path[i]);
+
+                        if (last_loop_end == -1) {
+                            auto l = distance(prev, p);
+                            z += (stepdown / L) * l;
+                            if (z <= cut_z) {
+                                z = cut_z;
+                                last_loop_end = i;
+                            }
+                            prev = p;
+                        }
+
+                        std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(z) << "\n";
+                    }
+
+                    if (last_loop_end > 0) {
+                        for(int i = 0; i < last_loop_end; ++i) {
+                            auto p = unscale_point(path[i]);
+                            std::cout << "   X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(z) << "\n";
+                        }
+                    }
+                }
+
+                std::cout << "G0 Z" << r6(retract_z) << "\n";
+                std::cout << "\n";
             }
-            std::cout << "G0 Z" << r6(retract_z) << "\n";
-            std::cout << "\n";
         }
 
     } catch(const po::error& e) {
