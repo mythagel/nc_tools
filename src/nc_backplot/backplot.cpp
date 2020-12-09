@@ -258,6 +258,7 @@ int main(int argc, char* argv[]) {
     options.add_options()
         ("help,h", "display this help and exit")
         ("model", po::value<std::string>(), "Model file")
+        ("xz", "Orient on XZ plane")
     ;
 
     try {
@@ -284,7 +285,10 @@ int main(int argc, char* argv[]) {
         auto gw = viewer.setUpViewerAsEmbeddedInWindow(0, 0, size.x, size.y);
 
         viewer.setCameraManipulator(new osgGA::TrackballManipulator);
-        viewer.getCameraManipulator()->setHomePosition({0, 0, 100}, {0,0,0}, {0,0,1}, false);
+        if (vm.count("xz"))
+            viewer.getCameraManipulator()->setHomePosition({0, 100, 0}, {0,0,0}, {0,1,0}, false);
+        else
+            viewer.getCameraManipulator()->setHomePosition({0, 0, 100}, {0,0,0}, {0,0,1}, false);
         viewer.setLightingMode(osg::View::LightingMode::NO_LIGHT);
         osg::ref_ptr<osgGA::StateSetManipulator> statesetManipulator = new osgGA::StateSetManipulator(viewer.getCamera()->getStateSet());
         viewer.addEventHandler(statesetManipulator.get());
