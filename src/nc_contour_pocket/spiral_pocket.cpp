@@ -274,7 +274,7 @@ int main(int argc, char* argv[]) {
 
         std::cout << "G0 Z" << r6(retract_z) << "\n";
 
-        for (const auto& path : paths) {
+        for (const auto& path : paths) {    // TODO wrong for any contours with holes...
 
             auto unscale_point = [&](const cl::IntPoint& p) -> point_2 {
                 return {static_cast<double>(p.X)/nc_path.scale(), static_cast<double>(p.Y)/nc_path.scale()};

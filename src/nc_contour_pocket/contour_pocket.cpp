@@ -208,7 +208,7 @@ int main(int argc, char* argv[]) {
             for (unsigned step = 0; step < n_steps; ++step, z += step_z) {
 
                 bool rapid_to_first = true;
-                bool helical_plunge = true;
+                bool helical_plunge = false;
                 for (auto& path : paths) {
 
                     if (rapid_to_first) {

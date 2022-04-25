@@ -15,7 +15,7 @@ namespace cl = ClipperLib;
 using namespace geometry;
 
 struct Node {
-    ClipperLib::Paths polygon;
+    cl::Paths polygon;
     std::vector<Node> children;
 };
 
@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
         double tool_offset = vm["tool_r"].as<double>() * 2 * vm["stepover"].as<double>();
         double feedrate = vm["feedrate"].as<double>();
 
-        auto process_path = [&] (ClipperLib::Paths paths, double z) {
+        auto process_path = [&] (cl::Paths paths, double z) {
 
             // Offset path inwards by tool radius.
             {
@@ -159,9 +159,16 @@ int main(int argc, char* argv[]) {
             segment(root, segments);
 
             for (auto& node : segments) {
-                // TODO modify segments into spiral paths by interpolating between levels
+                std::reverse(begin(node.children), end(node.children));
                 fprintf(stderr, "node.children.size(): %d\n", node.children.size());
-                output_node(node, z, nc_path.scale(), 0);
+                // TODO modify segments into spiral paths by interpolating between levels
+                for (unsigned i = 0; i < node.children.size(); ++i) {
+                    if (i == 0) {
+                        output_node(node.children[i], z, nc_path.scale(), 0);
+                    } else {
+                        std::vector<point_2> path;
+                    }
+                }
             }
 
             std::cout << "\n";

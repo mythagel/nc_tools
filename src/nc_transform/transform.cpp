@@ -12,6 +12,7 @@
 namespace po = boost::program_options;
 using namespace cxxcam;
 
+// TODO add options to align by bounding box, e.g. top at z0, xy0 at center or corners
 int main(int argc, char* argv[]) {
     po::options_description options("nc_transform");
     std::vector<std::string> args(argv, argv + argc);

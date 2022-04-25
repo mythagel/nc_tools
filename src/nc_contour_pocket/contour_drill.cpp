@@ -213,7 +213,7 @@ int main(int argc, char* argv[]) {
                 for(auto& point : path) {
                     if (!original_point(point)) continue;
                     auto p = unscale_point(point);
-                    std::cout << "G83 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(drill_z) << "  R" << r6(retract_z) << " Q" << r6(drill_d) << " F" << r6(feedrate) << '\n';
+                    std::cout << "G83 X" << r6(p.x) << " Y" << r6(p.y) << " Z" << r6(drill_z) << "  R" << r6(retract_z) << " Q" << r6(drill_d * 3) << " F" << r6(feedrate) << '\n';
                 }
                 std::cout << "\n";
             }
