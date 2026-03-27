@@ -27,7 +27,7 @@
 #include "base/rs274_base.h"
 #include "geometry_3.h"
 #include <vector>
-#include <boost/optional.hpp>
+#include <optional>
 
 class rs274_arcfit : public rs274_base
 {
@@ -37,7 +37,7 @@ private:
         geometry_3::point_3 p0;
         geometry_3::point_3 p;
     };
-    boost::optional<block_point> point_;
+    std::optional<block_point> point_;
     geometry_3::point_3 to_point_3(const cxxcam::Position& pos);
 
     // state machine

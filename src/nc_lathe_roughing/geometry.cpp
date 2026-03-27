@@ -24,7 +24,7 @@
 
 #include "geometry.h"
 
-boost::optional<point_2> intersects (const line_segment_2& l1, const line_segment_2& l2) {
+std::optional<point_2> intersects (const line_segment_2& l1, const line_segment_2& l2) {
     auto s1 = l1.b - l1.a;
     auto s2 = l2.b - l2.a;
 

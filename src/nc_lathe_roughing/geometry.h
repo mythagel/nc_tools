@@ -25,7 +25,7 @@
 #ifndef GEOMETRY_H_
 #define GEOMETRY_H_
 #include <cmath>
-#include <boost/optional.hpp>
+#include <optional>
 
 struct point_2
 {
@@ -61,6 +61,6 @@ struct line_segment_2
     point_2 b;
 };
 
-boost::optional<point_2> intersects(const line_segment_2& l1, const line_segment_2& l2);
+std::optional<point_2> intersects(const line_segment_2& l1, const line_segment_2& l2);
 
 #endif /* GEOMETRY_H_ */

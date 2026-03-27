@@ -75,7 +75,7 @@ double chord_height(const point_3& a, const point_3& b, double r) {
 
 /* assumes arc is described in the xy plane; when calculating other planes, map to XY
  * */
-boost::optional<point_3> circle_center(point_3 p0, point_3 p1, point_3 p2) {
+std::optional<point_3> circle_center(point_3 p0, point_3 p1, point_3 p2) {
     if (collinear(p0, p1, p2)) return {};
     point_3 center;
 
