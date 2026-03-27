@@ -23,11 +23,11 @@
  */
 
 #include "nc_config.h"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <stdexcept>
 #include <iostream>
 
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 namespace {
 

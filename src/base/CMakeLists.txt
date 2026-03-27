@@ -1,5 +1,5 @@
 FIND_PACKAGE(Lua REQUIRED)
-FIND_PACKAGE(Boost COMPONENTS program_options system filesystem REQUIRED)
+FIND_PACKAGE(Boost COMPONENTS program_options system REQUIRED)
 
 include_directories(
     ${LUA_INCLUDE_DIR}
