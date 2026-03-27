@@ -1,8 +1,3 @@
-
-IF(UNIX)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF()
-
 FIND_PACKAGE(SFML 2 COMPONENTS system window graphics audio REQUIRED)
 FIND_PACKAGE(OpenGL REQUIRED)
 FIND_PACKAGE(OpenSceneGraph 3.2.0 REQUIRED osgViewer osgGA osgUtil)

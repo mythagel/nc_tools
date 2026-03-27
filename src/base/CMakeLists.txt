@@ -1,8 +1,3 @@
-
-IF(UNIX)
-	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-ENDIF()
-
 FIND_PACKAGE(Lua REQUIRED)
 FIND_PACKAGE(Boost COMPONENTS program_options system filesystem REQUIRED)
 

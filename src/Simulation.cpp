@@ -93,7 +93,7 @@ Bbox bounding_box(const std::vector<path::step>& steps)
 		return {};
 	
 	auto s0 = steps.front();
-	return std::accumulate(++begin(steps), end(steps), Bbox{s0.position, s0.position}, [](Bbox& b, const path::step& s0) { return b + s0.position; } );
+	return std::accumulate(++begin(steps), end(steps), Bbox{s0.position, s0.position}, [](const Bbox& b, const path::step& s0) { return b + s0.position; } );
 }
 
 geom::polyhedron_t remove_material(const geom::polyhedron_t& tool, const geom::polyhedron_t& stock, const std::vector<path::step>& steps)
