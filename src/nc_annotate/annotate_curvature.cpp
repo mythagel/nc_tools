@@ -10,6 +10,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <cmath>
 
 namespace po = boost::program_options;
 
@@ -42,7 +43,7 @@ private:
 
             double curve = 1/radius;
 
-            if (isnan(curve) == false) {
+            if (std::isnan(curve) == false) {
                 std::ostringstream ss;
                 ss << "R" << r6(curve);     // Radius of curvature
                 push_annotation(ss.str());
