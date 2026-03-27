@@ -7,9 +7,7 @@
 #include "../r6.h"
 #include <cmath>
 
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
+#include <Eigen/Dense>
 
 namespace po = boost::program_options;
 namespace path = svg::types::parsers::path;
@@ -120,7 +118,6 @@ protected:
         std::cerr << "args------------------------\n";
         x = abs ? x : pos.x + x;
         y = abs ? y : pos.y + y;
-        using namespace boost::numeric::ublas;
         double pi = 3.14159265359;
 
         double phi = std::fmod(x_rotation, 360.0) * (pi / 180.0);
@@ -138,31 +135,31 @@ protected:
         DUMP(x1);
         DUMP(y1);
         std::cerr << "x1y1_prime------------------------\n";
-        matrix<double> x1y1_prime(2,1);
+        Eigen::MatrixXf x1y1_prime = Eigen::MatrixXf::Zero(2,1);
         {
-            matrix<double> m0(2, 2);
+            Eigen::MatrixXf m0 = Eigen::MatrixXf::Zero(2, 2);
             m0(0,0) = std::cos(phi);
             m0(0,1) = std::sin(phi);
             m0(1,0) = -std::sin(phi);
             m0(1,1) = std::cos(phi);
             DUMP(m0);
 
-            matrix<double> m1(2, 1);
+            Eigen::MatrixXf m1 = Eigen::MatrixXf::Zero(2, 1);
             m1(0,0) = (x1-x)/2.0;
             m1(1,0) = (y1-y)/2.0;
             DUMP(m1);
 
-            x1y1_prime = prod(m0, m1);
+            x1y1_prime = m0 * m1;
             DUMP(x1y1_prime);
         }
 
         std::cerr << "c_prime------------------------\n";
-        matrix<double> c_prime(2,1);
+        Eigen::MatrixXf c_prime = Eigen::MatrixXf::Zero(2,1);
         {
             double x1_prime = x1y1_prime(0,0);
             double y1_prime = x1y1_prime(1,0);
 
-            matrix<double> m0(2, 1);
+            Eigen::MatrixXf m0 = Eigen::MatrixXf::Zero(2, 1);
             m0(0,0) = (rx * y1_prime) / ry;
             m0(1,0) = -(ry * x1_prime) / rx;
             DUMP(m0);
@@ -189,32 +186,32 @@ protected:
         }
         
         std::cerr << "c------------------------\n";
-        matrix<double> c(2,1);
+        Eigen::MatrixXf c = Eigen::MatrixXf::Zero(2,1);
         {
-            matrix<double> m0(2, 2);
+            Eigen::MatrixXf m0 = Eigen::MatrixXf::Zero(2, 2);
             m0(0,0) = std::cos(phi);
             m0(0,1) = -std::sin(phi);
             m0(1,0) = std::sin(phi);
             m0(1,1) = std::cos(phi);
             DUMP(m0);
 
-            matrix<double> m1(2, 1);
+            Eigen::MatrixXf m1 = Eigen::MatrixXf::Zero(2, 1);
             m1(0,0) = (x1+x)/2.0;
             m1(1,0) = (y1+y)/2.0;
             DUMP(m1);
 
-            c = prod(m0, c_prime) + m1;
+            c = m0 * c_prime + m1;
         }
         DUMP(c);
 
-        auto delta_angle = [](vector<double> u, vector<double> v) -> double {
+        auto delta_angle = [](const Eigen::VectorXf& u, const Eigen::VectorXf& v) -> double {
             DUMP(u);
             DUMP(v);
             auto sign = u(0)*v(1) - u(1)*v(0);
             DUMP(sign);
 
-            auto num = inner_prod(u, v);
-            auto den = norm_2(u) * norm_2(v);
+            auto num = u.dot(v);
+            auto den = u.norm() * v.norm();
             DUMP(num);
             DUMP(den);
             DUMP(num/den);
@@ -229,11 +226,11 @@ protected:
             double cx_prime = c_prime(0,0);
             double cy_prime = c_prime(1,0);
 
-            vector<double> u(2);
+            Eigen::Vector2f u = Eigen::Vector2f::Zero();
             u(0) = 1;
             u(1) = 0;
 
-            vector<double> v(2);
+            Eigen::Vector2f v = Eigen::Vector2f::Zero();
             v(0) = (x1_prime - cx_prime) / rx;
             v(1) = (y1_prime - cy_prime) / ry;
             
@@ -249,11 +246,11 @@ protected:
             double cx_prime = c_prime(0,0);
             double cy_prime = c_prime(1,0);
 
-            vector<double> u(2);
+            Eigen::Vector2f u = Eigen::Vector2f::Zero();
             u(0) = (x1_prime - cx_prime) / rx;
             u(1) = (y1_prime - cy_prime) / ry;
 
-            vector<double> v(2);
+            Eigen::Vector2f v = Eigen::Vector2f::Zero();
             v(0) = (-x1_prime - cx_prime) / rx;
             v(1) = (-y1_prime - cy_prime) / ry;
 
@@ -266,7 +263,7 @@ protected:
             DUMP(delta_theta);
         }
 
-        matrix<double> m0(2, 2);
+        Eigen::MatrixXf m0 = Eigen::MatrixXf::Zero(2, 2);
         m0(0,0) = std::cos(phi);
         m0(0,1) = -std::sin(phi);
         m0(1,0) = std::sin(phi);
@@ -276,12 +273,12 @@ protected:
         double theta = theta1;
         for(unsigned _ = 0; _ < 100; ++_, theta += step) {
 
-            matrix<double> m1(2, 1);
+            Eigen::MatrixXf m1 = Eigen::MatrixXf::Zero(2, 1);
             m1(0,0) = rx * std::cos(theta);
             m1(1,0) = ry * std::sin(theta);
 
-            matrix<double> p(2, 1);
-            p = prod(m0, m1) + c;
+            Eigen::MatrixXf p = Eigen::MatrixXf::Zero(2, 1);
+            p = m0 * m1 + c;
             std::cout << "G01 X" << r6(p(0,0)) << " Y" << r6(p(1,0)) << " F" << r6(f) << "\n";
         }
 

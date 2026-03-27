@@ -1,9 +1,6 @@
 FIND_PACKAGE(Boost COMPONENTS program_options REQUIRED)
 FIND_PACKAGE(Lua REQUIRED)
-
-# Boost uBLAS
-SET(CMAKE_CXX_STANDARD 14)
-SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+FIND_PACKAGE(Eigen3 REQUIRED NO_MODULE)
 
 include_directories(
     ${Boost_INCLUDE_DIRS}
@@ -18,6 +15,7 @@ add_executable(nc_transform transform.cpp rs274_transform.cpp ../print_exception
 target_link_libraries(nc_transform
     ${Boost_LIBRARIES}
     ${LUA_LIBRARIES}
+    Eigen3::Eigen
     rs274ngc
     nc_base
     geom
