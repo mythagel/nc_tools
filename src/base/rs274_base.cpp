@@ -28,6 +28,7 @@
 #include <lua.hpp>
 #include "../r6.h"
 #include <sstream>
+#include <optional>
 #include "machine_config.h"
 
 namespace po = boost::program_options;
@@ -35,10 +36,10 @@ namespace po = boost::program_options;
 std::string str(const block_t& block)
 {
     std::ostringstream s;
-    auto out = [&s](char A, maybe<double> a){
+    auto out = [&s](char A, std::optional<double> a){
         if (a) s << A << r6(*a) << ' ';
     };
-    auto outi = [&s](char A, maybe<unsigned int> a){
+    auto outi = [&s](char A, std::optional<unsigned int> a){
         if (a) s << A << r6(*a) << ' ';
     };
     outi('N', block.line_number);

@@ -25,6 +25,7 @@
 #include "rs274_rename.h"
 #include <iostream>
 #include <stdexcept>
+#include <optional>
 
 AxisModification::Axis AxisModification::map(char c) {
     switch(c) {
@@ -62,8 +63,8 @@ AxisModification::Axis AxisModification::map(char c) {
 }
 
 void apply_mod(AxisModification a, block_t& block) {
-    maybe<double> empty;
-    auto axis = [&block, &empty](AxisModification::Axis a) -> maybe<double>& {
+    std::optional<double> empty;
+    auto axis = [&block, &empty](AxisModification::Axis a) -> std::optional<double>& {
         switch (a) {
             case AxisModification::axis_None:
                 return empty;
